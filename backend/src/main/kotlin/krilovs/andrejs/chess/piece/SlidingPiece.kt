@@ -11,7 +11,7 @@ abstract class SlidingPiece(
 ) : Piece(color, square) {
 
   override fun generateMoves(board: Board, moves: MutableList<Move>) {
-    for (dir in directions) {
+    directions.forEach { dir ->
       var from = square
 
       while (true) {
@@ -19,15 +19,14 @@ abstract class SlidingPiece(
         if (!board.isInside(to)) break
         if (kotlin.math.abs(board.file(to) - board.file(from)) > 1) break
 
-        val target = board.getPiece(to)
-        if (target == null) {
-          moves.add(Move(square, to, this, null))
-        }
-        else {
-          if (target.color != color) {
-            moves.add(Move(square, to, this, target))
+        val target = board[to]
+        when {
+          target == null -> moves += Move(square, to, this, null)
+          target.color != color -> {
+            moves += Move(square, to, this, target)
+            break
           }
-          break
+          else -> break
         }
 
         from = to

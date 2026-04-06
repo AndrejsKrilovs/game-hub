@@ -1,37 +1,39 @@
 package krilovs.andrejs.chess.game
 
+import krilovs.andrejs.chess.piece.King
 import krilovs.andrejs.chess.piece.Pawn
+import krilovs.andrejs.chess.piece.Piece
 
 class AttackService(private val board: Board) {
+  fun isSquareUnderAttack(square: Int, byColor: Color): Boolean =
+    board.pieces.any { piece -> piece.color == byColor && pieceAttacksSquare(piece, square) }
 
-  fun isSquareUnderAttack(square: Int, byColor: Color): Boolean {
-    val temp = ArrayList<Move>(32)
-
-    for (piece in board.getPieces()) {
-      if (piece.color != byColor) continue
-      temp.clear()
-
+  private fun pieceAttacksSquare(piece: Piece, target: Int): Boolean =
+    buildList {
       when (piece) {
-        is Pawn -> generatePawnAttacks(piece, temp)
-        else -> piece.generateMoves(board, temp)
+        is Pawn -> generatePawnAttacks(piece, this)
+        is King -> generateKingAttacks(piece, this)
+        else -> piece.generateMoves(board, this)
       }
-      for (m in temp) {
-        if (m.to == square) return true
-      }
-    }
-
-    return false
-  }
+    }.any { it.to == target }
 
   private fun generatePawnAttacks(pawn: Pawn, moves: MutableList<Move>) {
     val dir = if (pawn.color == Color.WHITE) 8 else -8
-    val attacks = intArrayOf(dir + 1, dir - 1)
 
-    for (offset in attacks) {
-      val to = pawn.square + offset
-      if (!board.isInside(to)) continue
-      if (kotlin.math.abs(board.file(pawn.square) - board.file(to)) != 1) continue
-      moves.add(Move(pawn.square, to, pawn, null))
-    }
+    listOf(dir + 1, dir - 1)
+      .map { pawn.square + it }
+      .filter { board.isInside(it) }
+      .filter { kotlin.math.abs(board.file(pawn.square) - board.file(it)) == 1 }
+      .forEach { moves += Move(pawn.square, it, pawn, null) }
+  }
+
+  private fun generateKingAttacks(king: King, moves: MutableList<Move>) {
+    val offsets = listOf(8, -8, 1, -1, 9, -9, 7, -7)
+
+    offsets
+      .map { king.square + it }
+      .filter { board.isInside(it) }
+      .filter { kotlin.math.abs(board.file(king.square) - board.file(it)) <= 1 }
+      .forEach { moves += Move(king.square, it, king, null) }
   }
 }

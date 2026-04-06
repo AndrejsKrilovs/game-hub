@@ -13,7 +13,7 @@ class Handler : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
 
   private val board = Board().apply {
-    loadFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1")
+    loadFromFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
   }
 
   private val attackService = AttackService(board)
@@ -21,10 +21,7 @@ class Handler : TextWebSocketHandler() {
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
-    session.sendJson("INIT", mapOf(
-      "pieces" to board.getPieces().map { it.toDto() },
-      "turn" to board.currentTurn
-    ))
+    session.sendState("INIT")
   }
 
   override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
@@ -34,48 +31,40 @@ class Handler : TextWebSocketHandler() {
   override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
     val data = mapper.readTree(message.payload)
     when (data["type"]?.asText()) {
-      "GET_MOVES" -> handleGetMoves(session, data)
-      "MOVE" -> handleMove(session, data)
+      "GET_MOVES" -> session.handleGetMoves(data)
+      "MOVE" -> session.handleMove(data)
     }
   }
 
-  private fun handleGetMoves(session: WebSocketSession, data: JsonNode) {
-    try {
-      val from = data["from"]?.asText()?.toSquare() ?: return
-      val moves = board.generateMovesForSquare(from)
-        .filter { rules.isMoveSafe(it) }
-        .map { it.to.toCoord() }
-
-      session.sendJson("MOVES", mapOf("moves" to moves))
-    }
-    catch (e: Exception) {
-      e.printStackTrace()
-    }
+  private fun WebSocketSession.handleGetMoves(data: JsonNode) {
+    val from = data["from"]?.asText()?.toSquare() ?: return
+    val moves = board.generateMovesForSquare(from).map { it.to.toCoord() }
+    sendJson("MOVES", mapOf("moves" to moves))
   }
 
-  private fun handleMove(session: WebSocketSession, data: JsonNode) {
+  private fun WebSocketSession.handleMove(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
     val to = data["to"]?.asText()?.toSquare() ?: return
     val moves = board.generateMovesForSquare(from)
 
-    val move = moves.firstOrNull { it.to == to && rules.isMoveSafe(it) }
-      ?: return session.sendJson(
+    val move = moves.firstOrNull { it.to == to }
+      ?: return sendJson(
         "INVALID_MOVE",
-        mapOf("availableMoves" to moves
-          .filter { rules.isMoveSafe(it) }
-          .map { it.to.toCoord() })
+        mapOf("availableMoves" to moves.map { it.to.toCoord() })
       )
 
     board.makeMove(move)
-    broadcast(
-      "STATE",
-      mapOf(
-        "pieces" to board.getPieces().map { it.toDto() },
-        "turn" to board.currentTurn.name,
-        "state" to rules.getGameState(board.currentTurn).name
-      )
-    )
   }
+
+  private fun WebSocketSession.sendState(type: String) {
+    sendJson(type, buildStatePayload())
+  }
+
+  private fun buildStatePayload() = mapOf(
+    "pieces" to board.pieces.map { it.toDto() },
+    "turn" to board.currentTurn.name,
+    "state" to rules.getGameState(board.currentTurn).name
+  )
 
   private fun Piece.toDto() = mapOf(
     "type" to type,
@@ -86,24 +75,11 @@ class Handler : TextWebSocketHandler() {
     )
   )
 
-  private fun Int.toCoord(): String {
-    val file = 'a' + (this % 8)
-    val rank = (this / 8) + 1
-    return "$file$rank"
-  }
-
-  private fun String.toSquare(): Int {
-    val file = this[0] - 'a'
-    val rank = this[1].digitToInt() - 1
-    return rank * 8 + file
-  }
+  private fun Int.toCoord() = "${'a' + (this % 8)}${(this / 8) + 1}"
+  private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
 
   private fun WebSocketSession.sendJson(type: String, payload: Map<String, Any?>) {
-    sendMessage(TextMessage(mapper.writeValueAsString(payload + ("type" to type))))
-  }
-
-  private fun broadcast(type: String, payload: Map<String, Any?>) {
     val json = mapper.writeValueAsString(payload + ("type" to type))
-    sessions.forEach { it.sendMessage(TextMessage(json)) }
+    sendMessage(TextMessage(json))
   }
 }

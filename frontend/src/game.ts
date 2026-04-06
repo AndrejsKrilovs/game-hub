@@ -222,6 +222,16 @@ export class Game {
     }
 
 		private addToHistory(piece: Piece, from: string, to: string) {
+					const castling = this.isCastling(from, to, piece);
+          if (castling) {
+              const color = piece.color === "WHITE" ? "Белые" : "Чёрные";
+              const type = castling === "short" ? "короткая рокировка" : "длинная рокировка";
+
+              this.historyEl.value += `${color}: ${type}\n`;
+              this.historyEl.scrollTop = this.historyEl.scrollHeight;
+              return;
+          }
+
 				 const gender = this.getPieceGender(piece.type);
          const color =
           piece.color === "WHITE"
@@ -254,4 +264,16 @@ export class Game {
             King: "m"
     }[type] || type;
   }
+
+	private isCastling(from: string, to: string, piece: Piece): "short" | "long" | null {
+      if (piece.type !== "King") return null;
+
+      const fromFile = from.charCodeAt(0);
+      const toFile = to.charCodeAt(0);
+      const diff = toFile - fromFile;
+
+			if (diff === 2) return "short";
+      if (diff === -2) return "long";
+      return null;
+	}
 }

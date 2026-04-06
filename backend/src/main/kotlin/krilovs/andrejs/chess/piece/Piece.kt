@@ -9,9 +9,9 @@ abstract class Piece(val color: Color, var square: Int) {
   abstract fun generateMoves(board: Board, moves: MutableList<Move>)
 
   protected fun addMove(board: Board, moves: MutableList<Move>, to: Int) {
-    val target = board.getPiece(to)
+    val target = board[to]
     if (target == null || target.color != color) {
-      moves.add(Move(square, to, this, target))
+      moves += Move(square, to, this, target)
     }
   }
 }

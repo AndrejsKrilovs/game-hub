@@ -2,12 +2,25 @@ package krilovs.andrejs.chess.game
 
 import krilovs.andrejs.chess.piece.King
 
-class GameRules(private val board: Board, private val attackService: AttackService) {
+class GameRules(
+  private val board: Board,
+  private val attackService: AttackService
+) {
 
   fun isMoveSafe(move: Move): Boolean {
+    val enemy = move.piece.color.opposite()
+
+    if (move.isCastling && move.piece is King) {
+      val direction = if (move.to > move.from) 1 else -1
+      val path = listOf(move.from, move.from + direction, move.to)
+      if (path.any { attackService.isSquareUnderAttack(it, enemy) }) {
+        return false
+      }
+    }
+
     board.makeMove(move)
     val kingSq = findKing(move.piece.color)
-    val safe = !attackService.isSquareUnderAttack(kingSq, move.piece.color.opposite())
+    val safe = !attackService.isSquareUnderAttack(kingSq, enemy)
     board.unmakeMove(move)
     return safe
   }
@@ -15,7 +28,7 @@ class GameRules(private val board: Board, private val attackService: AttackServi
   fun getGameState(color: Color): GameState {
     val kingSq = findKing(color)
     val inCheck = attackService.isSquareUnderAttack(kingSq, color.opposite())
-    val hasMoves = board.generateMoves().any { isMoveSafe(it) }
+    val hasMoves = board.generateMoves().any(::isMoveSafe)
 
     return when {
       inCheck && !hasMoves -> GameState.CHECKMATE
@@ -25,9 +38,6 @@ class GameRules(private val board: Board, private val attackService: AttackServi
     }
   }
 
-  private fun findKing(color: Color): Int {
-    return board.getPieces()
-      .first { it is King && it.color == color }
-      .square
-  }
+  private fun findKing(color: Color): Int =
+    board.pieces.first { it is King && it.color == color }.square
 }
