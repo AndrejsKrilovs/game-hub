@@ -1,15 +1,19 @@
-import { BoardView } from "./boardView";
+import { BoardView } from "./BoardView";
+import { EventBus } from "../EventBus";
 
 export class BoardController {
   private board: BoardView | null = null;
 
-  constructor(private onCellClick: (coord: string) => void) {}
+  constructor(private bus: EventBus) {}
 
   create() {
     const app = document.getElementById("app")!;
     app.innerHTML = "";
 
-    this.board = new BoardView(this.onCellClick);
+    this.board = new BoardView((coord) => {
+      this.bus.emit("CELL_CLICK", coord);
+    });
+
     this.board.render(app);
   }
 

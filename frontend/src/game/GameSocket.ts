@@ -1,13 +1,15 @@
+import { EventBus } from "../EventBus";
+
 export class GameSocket {
   private ws!: WebSocket;
 
-  constructor(private onMessage: (data: any) => void) {}
+  constructor(private bus: EventBus) {}
 
   connect() {
     this.ws = new WebSocket("ws://localhost:8080/ws");
 
     this.ws.onmessage = ({ data }) => {
-      this.onMessage(JSON.parse(data));
+      this.bus.emit("SOCKET_MESSAGE", JSON.parse(data));
     };
   }
 

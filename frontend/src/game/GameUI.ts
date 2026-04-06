@@ -1,4 +1,9 @@
+import { EventBus } from "../EventBus";
+import { Toast } from "./Toast";
+
 export class GameUI {
+  constructor(private bus: EventBus) {}
+
   startBtn!: HTMLButtonElement;
   endBtn!: HTMLButtonElement;
   historyEl!: HTMLTextAreaElement;
@@ -24,6 +29,14 @@ export class GameUI {
     this.endBtn.onclick = onEnd;
 
     this.endBtn.disabled = true;
+
+    this.bus.on("TOAST", ({ message, type }) => {
+      Toast.show(message, type);
+    });
+
+    this.bus.on("MOVE_DONE", ({ piece, from, to }) => {
+      this.addToHistory(piece, from, to);
+    });
   }
 
   setStarted(started: boolean) {
@@ -37,57 +50,10 @@ export class GameUI {
 
   addToHistory(piece: any, from: string, to: string) {
     const el = this.historyEl;
-    const castling = this.isCastling(from, to, piece);
-    if (castling) {
-      const color = piece.color === "WHITE" ? "Белые" : "Чёрные";
-      const type = castling === "short" ? "короткая рокировка" : "длинная рокировка";
 
-      el.value += `${color}: ${type}\n`;
-      el.scrollTop = el.scrollHeight;
-      return;
-    }
+    const color = piece.color === "WHITE" ? "Белые" : "Чёрные";
+    el.value += `${color}: ${from} → ${to}\n`;
 
-    const gender = this.getPieceGender(piece.type);
-    const color =
-      piece.color === "WHITE"
-        ? (gender === "f" ? "Белая" : "Белый")
-        : (gender === "f" ? "Чёрная" : "Чёрный");
-
-    const type = this.getPieceName(piece.type).toLowerCase();
-    el.value += `${color} ${type}: ${from} → ${to}\n`;
     el.scrollTop = el.scrollHeight;
-  }
-
-	private isCastling(from: string, to: string, piece: any): "short" | "long" | null {
-    if (piece.type !== "King") return null;
-
-    const fromFile = from.charCodeAt(0);
-    const toFile = to.charCodeAt(0);
-    const diff = toFile - fromFile;
-    if (diff === 2) return "short";
-    if (diff === -2) return "long";
-    return null;
-	}
-
-	private getPieceName(type: string): string {
-    return {
-      Pawn: "Пешка",
-      Rook: "Ладья",
-      Knight: "Конь",
-      Bishop: "Слон",
-      Queen: "Ферзь",
-      King: "Король"
-    }[type] || type;
-  }
-
-  private getPieceGender(type: string): "m" | "f" {
-    return {
-      Pawn: "f",
-      Rook: "f",
-      Knight: "m",
-      Bishop: "m",
-      Queen: "m",
-      King: "m"
-    }[type] || "m";
   }
 }
