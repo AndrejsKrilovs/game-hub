@@ -54,6 +54,14 @@ class Handler : TextWebSocketHandler() {
       )
 
     board.makeMove(move)
+    broadcast(
+      "STATE",
+      mapOf(
+        "turn" to board.currentTurn.name,
+        "pieces" to board.pieces.map { it.toDto() },
+        "state" to rules.getGameState(board.currentTurn).name
+      )
+    )
   }
 
   private fun WebSocketSession.sendState(type: String) {
@@ -81,5 +89,10 @@ class Handler : TextWebSocketHandler() {
   private fun WebSocketSession.sendJson(type: String, payload: Map<String, Any?>) {
     val json = mapper.writeValueAsString(payload + ("type" to type))
     sendMessage(TextMessage(json))
+  }
+
+  private fun broadcast(type: String, payload: Map<String, Any?>) {
+    val json = mapper.writeValueAsString(payload + ("type" to type))
+    sessions.forEach { it.sendMessage(TextMessage(json)) }
   }
 }
