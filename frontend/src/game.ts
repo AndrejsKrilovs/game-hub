@@ -33,12 +33,6 @@ export class Game {
           <button class="btn btn-start">Начать игру</button>
           <button class="btn btn-end">Завершить игру</button>
 
-          <div class="stats">
-            <div>Победы: 0</div>
-            <div>Поражения: 0</div>
-            <div>Ничьи: 0</div>
-          </div>
-
           <div class="history">
             <label>История ходов</label>
             <textarea readonly></textarea>
@@ -203,11 +197,11 @@ export class Game {
     }
 
     private showError(message: string) {
-        alert(message);
+        this.showToast(message, "error");
     }
 
     private showInfo(message: string) {
-        alert(message);
+        this.showToast(message, "info");
     }
 
 		private startGame() {
@@ -276,4 +270,31 @@ export class Game {
       if (diff === -2) return "long";
       return null;
 	}
+
+	private showToast(message: string, type: "info" | "error" | "success" = "info") {
+    let toast = document.querySelector(".toast") as HTMLElement;
+
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.className = "toast";
+      document.body.appendChild(toast);
+    }
+
+    const icons = {
+      info: "ℹ️",
+      error: "❌",
+      success: "✅"
+    };
+
+    toast.className = `toast show ${type}`;
+    toast.innerHTML = `
+      <span class="toast-icon">${icons[type]}</span>
+      <span>${message}</span>
+    `;
+
+    clearTimeout((toast as any)._timer);
+    (toast as any)._timer = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 2500);
+  }
 }
