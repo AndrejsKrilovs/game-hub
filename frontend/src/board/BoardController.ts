@@ -9,11 +9,7 @@ export class BoardController {
   create() {
     const app = document.getElementById("app")!;
     app.innerHTML = "";
-
-    this.board = new BoardView((coord) => {
-      this.bus.emit("CELL_CLICK", coord);
-    });
-
+    this.board = new BoardView(this.bus);
     this.board.render(app);
   }
 
@@ -30,7 +26,7 @@ export class BoardController {
 
     pieces.forEach(p => {
       const pos = `${p.coordinates.file}${p.coordinates.rank}`;
-      this.board!.setPiece(pos, getSymbol(p.type, p.color));
+      this.board?.setPiece(pos, getSymbol(p.type, p.color));
     });
   }
 

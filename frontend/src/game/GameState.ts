@@ -12,4 +12,10 @@ export class GameState {
     this.selected = null;
     this.availableMoves = [];
   }
+
+	getPiece(coord: string) {
+    return this.pieces.find(
+      p => `${p.coordinates.file}${p.coordinates.rank}` === coord
+    );
+  }
 }

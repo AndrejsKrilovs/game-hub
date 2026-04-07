@@ -1,3 +1,14 @@
+import {
+  StartGameUseCase,
+  EndGameUseCase,
+  SelectCellUseCase,
+  MakeMoveUseCase,
+  HandleStateUseCase,
+  HandleMovesUseCase,
+  HandleInvalidMoveUseCase,
+  HandleErrorUseCase
+} from "../usecases";
+
 import { GameState } from "./GameState";
 import { GameSocket } from "./GameSocket";
 import { GameUI } from "./GameUI";
@@ -5,195 +16,90 @@ import { BoardController } from "../board/BoardController";
 import { EventBus } from "../EventBus";
 
 export class Game {
-  private state = new GameState();
+  private state: GameState;
   private ui: GameUI;
   private socket: GameSocket;
   private board: BoardController;
 
+  private startUC: StartGameUseCase;
+  private endUC: EndGameUseCase;
+  private selectUC: SelectCellUseCase;
+  private moveUC: MakeMoveUseCase;
+  private stateUC: HandleStateUseCase;
+  private movesUC: HandleMovesUseCase;
+  private invalidUC: HandleInvalidMoveUseCase;
+  private errorUC: HandleErrorUseCase;
+
   constructor(private bus: EventBus) {
+    this.state = new GameState();
     this.ui = new GameUI(bus);
     this.socket = new GameSocket(bus);
     this.board = new BoardController(bus);
 
-    this.ui.init(this.startGame.bind(this), this.endGame.bind(this));
+    this.startUC = new StartGameUseCase(this.state, this.ui, this.socket, this.board, bus);
+    this.endUC = new EndGameUseCase(this.state, this.ui, this.socket, this.board, bus);
+    this.selectUC = new SelectCellUseCase(this.state, this.socket, bus);
+    this.moveUC = new MakeMoveUseCase(this.state, this.socket, this.board, bus);
+    this.stateUC = new HandleStateUseCase(
+      this.state,
+      this.board,
+      this.ui,
+      bus,
+      (msg) => this.endUC.execute(msg),
+      this.getSymbol.bind(this)
+    );
+    this.movesUC = new HandleMovesUseCase(this.state, this.board, bus);
+    this.invalidUC = new HandleInvalidMoveUseCase(this.state, this.board, bus);
+    this.errorUC = new HandleErrorUseCase(this.state, this.board, bus);
 
-    bus.on("CELL_CLICK", this.onCellClick.bind(this));
-    bus.on("SOCKET_MESSAGE", this.handleMessage.bind(this));
+    this.ui.init(
+      () => this.bus.emit("START_GAME"),
+      () => this.bus.emit("END_GAME")
+    );
+
+    this.registerEvents();
   }
 
-  private startGame() {
-    if (this.state.isStarted) return;
-
-    this.state.isStarted = true;
-    this.state.gameOver = false;
-
-    this.ui.setStarted(true);
-    this.ui.clearHistory();
-
-    this.board.create();
-    this.socket.connect();
-
-    this.bus.emit("TOAST", { message: "Игра началась", type: "success" });
+  private registerEvents() {
+    this.bus.on("START_GAME", () => this.startUC.execute());
+    this.bus.on("END_GAME", () => this.endUC.execute("Игра завершена"));
+    this.bus.on("CELL_CLICK", (coord: string) => this.onCellClick(coord));
+    this.bus.on("SOCKET_MESSAGE", (data: any) => this.handleSocket(data));
   }
 
-  private endGame() {
-    this.finishGame("Игра завершена");
-  }
-
-  private finishGame(msg: string) {
-    this.state.isStarted = false;
-    this.state.gameOver = true;
-
-    this.ui.setStarted(false);
-    this.socket.close();
-    this.board.destroy();
-
-    this.bus.emit("TOAST", { message: msg, type: "info" });
-  }
-
-  private handleMessage(data: any) {
+  private handleSocket(data: any) {
     switch (data.type) {
       case "INIT":
       case "STATE":
-        this.handleState(data);
+        this.stateUC.execute(data);
         break;
       case "MOVES":
-        this.handleMoves(data);
+        this.movesUC.execute(data);
         break;
       case "INVALID_MOVE":
-        this.handleInvalidMove(data);
+        this.invalidUC.execute(data);
         break;
       case "ERROR":
-        this.handleError(data);
+        this.errorUC.execute(data);
         break;
     }
-  }
-
-  private handleState(data: any) {
-    this.state.currentTurn = data.turn;
-    this.state.pieces = data.pieces;
-
-    if (this.state.pendingMove) {
-      this.bus.emit("MOVE_DONE", this.state.pendingMove);
-      this.state.pendingMove = null;
-    }
-
-    this.state.resetSelection();
-    this.board.clearHighlights();
-    this.board.render(data.pieces, this.getSymbol);
-
-    this.bus.emit("STATE_UPDATED", data);
-
-    switch (data.state) {
-      case "CHECK":
-        this.bus.emit("TOAST", { message: "ШАХ!", type: "info" });
-        break;
-      case "CHECKMATE":
-        this.finishGame("МАТ! Начать новую игру?");
-        break;
-      case "STALEMATE":
-        this.finishGame("ПАТ! Начать новую игру?");
-        break;
-    }
-  }
-
-  private handleMoves(data: any) {
-    if (!this.state.selected) return;
-
-    if (!data.moves?.length) {
-      this.bus.emit("TOAST", {
-        message: `Фигура на ${this.state.selected} не имеет ходов`,
-        type: "info"
-      });
-
-      this.state.resetSelection();
-      this.board.clearHighlights();
-      return;
-    }
-
-    this.state.availableMoves = data.moves;
-    this.board.highlight(data.moves);
-  }
-
-  private handleInvalidMove(data: any) {
-    this.state.pendingMove = null;
-
-    this.bus.emit("TOAST", {
-      message: "Недопустимый ход. Повторите попытку",
-      type: "error"
-    });
-
-    this.state.resetSelection();
-    this.board.clearHighlights();
-  }
-
-  private handleError(data: any) {
-    this.state.resetSelection();
-    this.board.clearHighlights();
-
-    this.bus.emit("TOAST", {
-      message: data.message ?? "Ошибка",
-      type: "error"
-    });
   }
 
   private onCellClick(coord: string) {
     if (!this.state.isStarted) {
-      this.bus.emit("TOAST", { message: "Сначала начните игру", type: "error" });
-      return;
-    }
-
-    if (this.state.gameOver) {
-      this.bus.emit("TOAST", { message: "Игра завершена", type: "error" });
+      this.bus.emit("TOAST", {
+        message: "Сначала начните игру",
+        type: "error"
+      });
       return;
     }
 
     if (!this.state.selected) {
-      const piece = this.getPiece(coord);
-
-      if (!piece) {
-        this.bus.emit("TOAST", { message: "Клетка пустая", type: "error" });
-        return;
-      }
-
-      if (piece.color !== this.state.currentTurn) {
-        const turn = this.state.currentTurn === "WHITE" ? "белых" : "чёрных";
-        this.bus.emit("TOAST", { message: `Сейчас ход ${turn}`, type: "error" });
-        return;
-      }
-
-      this.state.selected = coord;
-      this.socket.send("GET_MOVES", { from: coord });
-      return;
+      this.selectUC.execute(coord);
     }
-
-    if (coord === this.state.selected) {
-      this.state.resetSelection();
-      this.board.clearHighlights();
-      return;
+		else {
+      this.moveUC.execute(coord);
     }
-
-    if (!this.state.availableMoves.includes(coord)) {
-      this.bus.emit("TOAST", {
-        message: "Недопустимый ход. Повторите попытку",
-        type: "error"
-      });
-
-      this.state.resetSelection();
-      this.board.clearHighlights();
-      return;
-    }
-
-    this.socket.send("MOVE", {
-      from: this.state.selected,
-      to: coord
-    });
-
-    this.state.pendingMove = {
-      piece: this.getPiece(this.state.selected)!,
-      from: this.state.selected,
-      to: coord
-    };
   }
 
   private getSymbol(type: string, color: string): string {
@@ -207,11 +113,5 @@ export class Game {
     };
 
     return map[type]?.[color] || "?";
-  }
-
-	private getPiece(coord: string) {
-    return this.state.pieces.find(
-      p => `${p.coordinates.file}${p.coordinates.rank}` === coord
-    );
   }
 }
