@@ -1,8 +1,3 @@
-import { GameState } from "../game/GameState";
-import { GameUI } from "../game/GameUI";
-import { BoardController } from "../board/BoardController";
-import { EventBus } from "../EventBus";
-
 export class HandleStateUseCase {
   constructor(
     private state: GameState,
@@ -17,11 +12,13 @@ export class HandleStateUseCase {
     this.state.currentTurn = data.turn;
     this.state.pieces = data.pieces;
     this.board.render(data.pieces, this.getSymbol);
-
-    if (this.state.pendingMove) {
-      const { piece, from, to } = this.state.pendingMove;
-      this.ui.addToHistory(piece, from, to);
-      this.state.pendingMove = null;
+    if (data.lastMove) {
+      const { piece, from, to, color } = data.lastMove;
+      this.ui.addToHistory(
+        { type: piece, color },
+        from,
+        to
+      );
     }
 
     this.state.resetSelection();

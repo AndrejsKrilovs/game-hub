@@ -10,8 +10,6 @@ export class HandleInvalidMoveUseCase {
   ) {}
 
   execute(data: any) {
-    this.state.pendingMove = null;
-
     const moves = data.availableMoves ?? [];
     const text = moves.length
       ? `Некорректный ход. Доступные: ${moves.join(", ")}`

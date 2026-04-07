@@ -29,11 +29,5 @@ export class MakeMoveUseCase {
       from: this.state.selected,
       to: coord
     });
-
-    this.state.pendingMove = {
-      piece: this.state.getPiece(this.state.selected),
-      from: this.state.selected,
-      to: coord
-    };
   }
 }

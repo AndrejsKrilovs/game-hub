@@ -18,10 +18,14 @@ class Handler : TextWebSocketHandler() {
 
   private val attackService = AttackService(board)
   private val rules = GameRules(board, attackService)
+  private val engine = AlphaBetaEngine(board, rules)
+  private val botColor = Color.BLACK
+  private var lastMove: Move? = null
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
     session.sendState("INIT")
+    makeBotMoveIfNeeded()
   }
 
   override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
@@ -54,12 +58,36 @@ class Handler : TextWebSocketHandler() {
       )
 
     board.makeMove(move)
+    lastMove = move
+    makeBotMoveIfNeeded()
+    broadcastState()
+  }
+
+  private fun makeBotMoveIfNeeded() {
+    if (board.currentTurn != botColor) return
+    val botMove = engine.findBestMove(3)
+
+    if (botMove != null) {
+      board.makeMove(botMove)
+      lastMove = botMove
+    }
+  }
+
+  private fun broadcastState() {
     broadcast(
       "STATE",
       mapOf(
         "turn" to board.currentTurn.name,
         "pieces" to board.pieces.map { it.toDto() },
-        "state" to rules.getGameState(board.currentTurn).name
+        "state" to rules.getGameState(board.currentTurn).name,
+        "lastMove" to lastMove?.let {
+          mapOf(
+            "from" to it.from.toCoord(),
+            "to" to it.to.toCoord(),
+            "piece" to it.piece.type,
+            "color" to it.piece.color.name
+          )
+        }
       )
     )
   }

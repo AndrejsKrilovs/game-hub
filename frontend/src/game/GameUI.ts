@@ -52,8 +52,34 @@ export class GameUI {
     const el = this.historyEl;
 
     const color = piece.color === "WHITE" ? "Белые" : "Чёрные";
-    el.value += `${color}: ${from} → ${to}\n`;
-
+    const move = this.getMoveLabel(piece, from, to);
+    el.value += `${color}: ${move}\n`;
     el.scrollTop = el.scrollHeight;
   }
+
+	private getMoveLabel(piece: any, from: string, to: string): string {
+    if (piece.type === "King") {
+      const diff = to.charCodeAt(0) - from.charCodeAt(0);
+				if (Math.abs(diff) === 2) {
+          return diff > 0
+            ? "короткая рокировка"
+            : "длинная рокировка";
+        }
+    }
+
+    return `${this.getName(piece.type)} ${from} → ${to}`;
+	}
+
+	private getName(type: string): string {
+    const map: Record<string, string> = {
+      Pawn: "пешка",
+      Rook: "ладья",
+      Knight: "конь",
+      Bishop: "слон",
+      Queen: "ферзь",
+      King: "король",
+    };
+
+    return map[type] ?? type;
+	}
 }
