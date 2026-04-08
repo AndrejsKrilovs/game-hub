@@ -73,16 +73,13 @@ class Handler : TextWebSocketHandler() {
     }
   }
 
-  private fun makeBotMoveIfNeeded(): Move? {
-    if (board.currentTurn != botColor) return null
-
-    val move = engine.findBestMove(3)
-    if (move != null) {
-      board.makeMove(move)
-      lastMove = move
-    }
-    return move
-  }
+  private fun makeBotMoveIfNeeded(): Move? =
+    engine.takeIf { board.currentTurn == botColor }
+      ?.findBestMove(3)
+      ?.also {
+        board.makeMove(it)
+        lastMove = it
+      }
 
   private fun broadcastState() {
     broadcastEvent("STATE", buildStatePayload() + mapOf(
