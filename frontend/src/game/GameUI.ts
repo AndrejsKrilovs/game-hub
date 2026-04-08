@@ -1,85 +1,78 @@
-import { EventBus } from "../EventBus";
-import { Toast } from "./Toast";
-
 export class GameUI {
   constructor(private bus: EventBus) {}
 
-  startBtn!: HTMLButtonElement;
-  endBtn!: HTMLButtonElement;
+  actionBtn!: HTMLButtonElement;
   historyEl!: HTMLTextAreaElement;
 
+  private onStart!: () => void;
+  private onEnd!: () => void;
+  private started = false;
+
   init(onStart: () => void, onEnd: () => void) {
+    this.onStart = onStart;
+    this.onEnd = onEnd;
+
     const sidebar = document.getElementById("sidebar")!;
 
     sidebar.innerHTML = `
-      <button class="btn btn-start">Начать игру</button>
-      <button class="btn btn-end">Завершить игру</button>
-
+      <button class="btn btn-start" data-action>Начать игру</button>
       <div class="history">
         <label>История ходов</label>
         <textarea readonly></textarea>
       </div>
     `;
 
-    this.startBtn = sidebar.querySelector(".btn-start")!;
-    this.endBtn = sidebar.querySelector(".btn-end")!;
+    this.actionBtn = sidebar.querySelector("[data-action]")!;
     this.historyEl = sidebar.querySelector("textarea")!;
-
-    this.startBtn.onclick = onStart;
-    this.endBtn.onclick = onEnd;
-
-    this.endBtn.disabled = true;
-
-    this.bus.on("TOAST", ({ message, type }) => {
-      Toast.show(message, type);
-    });
-
-    this.bus.on("MOVE_DONE", ({ piece, from, to }) => {
-      this.addToHistory(piece, from, to);
-    });
+    this.actionBtn.onclick = this.handleAction;
+    this.bus.on("TOAST", ({ message, type }) => { Toast.show(message, type) });
   }
 
+  private handleAction = () => {
+    if (this.started) {
+      this.onEnd();
+    }
+    else {
+      this.onStart();
+    }
+  };
+
   setStarted(started: boolean) {
-    this.startBtn.disabled = started;
-    this.endBtn.disabled = !started;
+    this.started = started;
+    this.actionBtn.textContent = started ? "Завершить игру" : "Начать игру";
+    this.actionBtn.classList.toggle("btn-start", !started);
+    this.actionBtn.classList.toggle("btn-end", started);
   }
 
   clearHistory() {
     this.historyEl.value = "";
   }
 
-  addToHistory(piece: any, from: string, to: string) {
-    const el = this.historyEl;
-
+  addToHistory(piece: any, from: string, to: string, extra?: any) {
     const color = piece.color === "WHITE" ? "Белые" : "Чёрные";
-    const move = this.getMoveLabel(piece, from, to);
-    el.value += `${color}: ${move}\n`;
-    el.scrollTop = el.scrollHeight;
-  }
 
-	private getMoveLabel(piece: any, from: string, to: string): string {
-    if (piece.type === "King") {
-      const diff = to.charCodeAt(0) - from.charCodeAt(0);
-				if (Math.abs(diff) === 2) {
-          return diff > 0
-            ? "короткая рокировка"
-            : "длинная рокировка";
-        }
+    if (extra?.isCastling) {
+      const type =
+        extra.castlingType === "SHORT"
+          ? "короткая рокировка"
+          : "длинная рокировка";
+
+      this.historyEl.value += `${color}: ${type}\n`;
+      this.historyEl.scrollTop = this.historyEl.scrollHeight;
+      return;
     }
 
-    return `${this.getName(piece.type)} ${from} → ${to}`;
-	}
-
-	private getName(type: string): string {
-    const map: Record<string, string> = {
+    const pieceNames: Record<string, string> = {
       Pawn: "пешка",
       Rook: "ладья",
       Knight: "конь",
       Bishop: "слон",
       Queen: "ферзь",
-      King: "король",
+      King: "король"
     };
 
-    return map[type] ?? type;
-	}
+    const pieceName = pieceNames[piece.type] ?? piece.type;
+    this.historyEl.value += `${color}: ${pieceName} ${from} → ${to}\n`;
+    this.historyEl.scrollTop = this.historyEl.scrollHeight;
+  }
 }

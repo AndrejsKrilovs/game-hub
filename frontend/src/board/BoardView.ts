@@ -1,10 +1,11 @@
-import { EventBus } from "../EventBus";
-
 const files = ["a","b","c","d","e","f","g","h"];
 
 export class BoardView {
+    private onCellClick: (coord: string) => void;
     private element: HTMLElement;
-    constructor(private bus: EventBus) {
+
+    constructor(onCellClick: (coord: string) => void) {
+        this.onCellClick = onCellClick;
         this.element = this.createBoard();
     }
 
@@ -54,7 +55,7 @@ export class BoardView {
                     cell.appendChild(label);
                 }
 
-                cell.onclick = () => this.bus.emit("CELL_CLICK", coord);
+                cell.onclick = () => this.onCellClick(coord);
                 board.appendChild(cell);
             }
         }
@@ -72,9 +73,9 @@ export class BoardView {
 
     clear() {
       this.element.querySelectorAll(".cell").forEach(c => {
-        const coords = c.querySelectorAll(".coord");
-        c.textContent = "";
-        coords.forEach(coord => c.appendChild(coord));
+          if (!c.querySelector(".coord")) {
+              c.textContent = "";
+          }
       });
     }
 }

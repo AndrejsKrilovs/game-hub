@@ -9,6 +9,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class Handler : TextWebSocketHandler() {
+
   private val mapper = jacksonObjectMapper()
   private val sessions = mutableSetOf<WebSocketSession>()
 
@@ -19,13 +20,18 @@ class Handler : TextWebSocketHandler() {
   private val attackService = AttackService(board)
   private val rules = GameRules(board, attackService)
   private val engine = AlphaBetaEngine(board, rules)
+
   private val botColor = Color.BLACK
   private var lastMove: Move? = null
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
-    session.sendState("INIT")
-    makeBotMoveIfNeeded()
+    session.sendEvent("INIT", buildStatePayload())
+
+    makeBotMoveIfNeeded()?.let {
+      broadcastEvent("MOVE", it.toDto())
+      broadcastState()
+    }
   }
 
   override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
@@ -43,63 +49,71 @@ class Handler : TextWebSocketHandler() {
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
     val moves = board.generateMovesForSquare(from).map { it.to.toCoord() }
-    sendJson("MOVES", mapOf("moves" to moves))
+    sendEvent("MOVES", mapOf("moves" to moves))
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
     val to = data["to"]?.asText()?.toSquare() ?: return
-    val moves = board.generateMovesForSquare(from)
 
-    val move = moves.firstOrNull { it.to == to }
-      ?: return sendJson(
+    val move = board.generateMovesForSquare(from)
+      .firstOrNull { it.to == to }
+      ?: return sendEvent(
         "INVALID_MOVE",
-        mapOf("availableMoves" to moves.map { it.to.toCoord() })
+        mapOf("availableMoves" to board.generateMovesForSquare(from).map { it.to.toCoord() })
       )
 
     board.makeMove(move)
     lastMove = move
-    makeBotMoveIfNeeded()
+    broadcastEvent("MOVE", move.toDto())
+    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
     broadcastState()
   }
 
-  private fun makeBotMoveIfNeeded() {
-    if (board.currentTurn != botColor) return
-    val botMove = engine.findBestMove(3)
+  private fun makeBotMoveIfNeeded(): Move? {
+    if (board.currentTurn != botColor) return null
 
-    if (botMove != null) {
-      board.makeMove(botMove)
-      lastMove = botMove
+    val move = engine.findBestMove(3)
+    if (move != null) {
+      board.makeMove(move)
+      lastMove = move
     }
+    return move
   }
 
   private fun broadcastState() {
-    broadcast(
-      "STATE",
-      mapOf(
-        "turn" to board.currentTurn.name,
-        "pieces" to board.pieces.map { it.toDto() },
-        "state" to rules.getGameState(board.currentTurn).name,
-        "lastMove" to lastMove?.let {
-          mapOf(
-            "from" to it.from.toCoord(),
-            "to" to it.to.toCoord(),
-            "piece" to it.piece.type,
-            "color" to it.piece.color.name
-          )
-        }
-      )
-    )
+    broadcastEvent("STATE", buildStatePayload() + mapOf(
+      "lastMove" to lastMove?.toDto()
+    ))
   }
 
-  private fun WebSocketSession.sendState(type: String) {
-    sendJson(type, buildStatePayload())
+  private fun WebSocketSession.sendEvent(type: String, payload: Map<String, Any?>) {
+    val json = mapper.writeValueAsString(payload + ("type" to type))
+    sendMessage(TextMessage(json))
+  }
+
+  private fun broadcastEvent(type: String, payload: Map<String, Any?>) {
+    val json = mapper.writeValueAsString(payload + ("type" to type))
+    sessions.forEach { it.sendMessage(TextMessage(json)) }
   }
 
   private fun buildStatePayload() = mapOf(
     "pieces" to board.pieces.map { it.toDto() },
     "turn" to board.currentTurn.name,
     "state" to rules.getGameState(board.currentTurn).name
+  )
+
+  private fun Move.toDto() = mapOf(
+    "from" to from.toCoord(),
+    "to" to to.toCoord(),
+    "piece" to piece.type,
+    "color" to piece.color.name,
+    "isCastling" to isCastling,
+    "castlingType" to when {
+      isCastling && to > from -> "SHORT"
+      isCastling && to < from -> "LONG"
+      else -> null
+    }
   )
 
   private fun Piece.toDto() = mapOf(
@@ -113,14 +127,4 @@ class Handler : TextWebSocketHandler() {
 
   private fun Int.toCoord() = "${'a' + (this % 8)}${(this / 8) + 1}"
   private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
-
-  private fun WebSocketSession.sendJson(type: String, payload: Map<String, Any?>) {
-    val json = mapper.writeValueAsString(payload + ("type" to type))
-    sendMessage(TextMessage(json))
-  }
-
-  private fun broadcast(type: String, payload: Map<String, Any?>) {
-    val json = mapper.writeValueAsString(payload + ("type" to type))
-    sessions.forEach { it.sendMessage(TextMessage(json)) }
-  }
 }
