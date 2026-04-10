@@ -1,3 +1,5 @@
+import { Toast } from "./Toast"
+
 export class GameUI {
   constructor(private bus: EventBus) {}
 
@@ -25,7 +27,7 @@ export class GameUI {
     this.actionBtn = sidebar.querySelector("[data-action]")!;
     this.historyEl = sidebar.querySelector("textarea")!;
     this.actionBtn.onclick = this.handleAction;
-    this.bus.on("TOAST", ({ message, type }) => { Toast.show(message, type) });
+    this.bus.on("TOAST", ({ message, type }) => { new Toast(this.bus) });
   }
 
   private handleAction = () => {
