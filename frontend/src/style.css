@@ -130,6 +130,7 @@ body {
 .toast {
   position: fixed;
   z-index: 1000;
+  will-change: opacity, transform;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 

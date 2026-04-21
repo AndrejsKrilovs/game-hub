@@ -16,7 +16,7 @@ export class GameState {
   };
 
   resetSelection() {
-    this.selected = null;
-    this.availableMoves = [];
+    this.selected = null
+    this.availableMoves = []
   }
 }

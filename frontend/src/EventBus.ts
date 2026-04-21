@@ -1,18 +1,25 @@
-type Handler = (payload?: any) => void;
+type Events = {
+  SOCKET_MESSAGE: any
+  CELL_CLICK: string
+  TOAST: { message: string; type?: "info" | "error" | "success" }
+  OPEN_PROMOTION_DIALOG: { pieces: string[]; color: string }
+  PROMOTE: { piece: string }
+}
 
 export class EventBus {
-  private listeners: Record<string, Handler[]> = {};
+  private listeners: {
+    [K in keyof Events]?: ((data: Events[K]) => void)[]
+  } = {}
 
-  on(event: string, handler: Handler) {
-    (this.listeners[event] ||= []).push(handler);
+  on<K extends keyof Events>(event: K, cb: (data: Events[K]) => void) {
+    (this.listeners[event] ??= []).push(cb)
   }
 
-  emit(event: string, payload?: any) {
-    this.listeners[event]?.forEach(h => h(payload));
+  emit<K extends keyof Events>(event: K, data: Events[K]) {
+    this.listeners[event]?.forEach(cb => cb(data))
   }
 
-  off(event: string, handler: Handler) {
-    this.listeners[event] =
-      this.listeners[event]?.filter(h => h !== handler) || [];
+  off<K extends keyof Events>(event: K, cb: (data: Events[K]) => void) {
+    this.listeners[event] = this.listeners[event]?.filter(x => x !== cb)
   }
 }

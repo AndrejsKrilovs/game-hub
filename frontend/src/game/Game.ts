@@ -67,29 +67,19 @@ export class Game {
     this.bus.emit("TOAST", { message: msg });
   };
 
-  private handleMessage = (data: any): void => {
-    switch (data.type) {
-      case "INIT":
-      case "STATE":
-        this.handleState(data);
-        break;
-      case "MOVE":
-        this.handleMoveEvent(data);
-        break;
-      case "MOVES":
-        this.handleMoves(data);
-        break;
-      case "INVALID_MOVE":
-        this.handleInvalidMove();
-        break;
-      case "ERROR":
-        this.handleError(data);
-        break;
-      case "PROMOTION":
-        this.handlePromotion(data);
-        break;
+  private handleMessage = (data: string): void => {
+    const handlers = {
+      INIT: this.handleState,
+      STATE: this.handleState,
+      MOVE: this.handleMoveEvent,
+      MOVES: this.handleMoves,
+      INVALID_MOVE: this.handleInvalidMove,
+      ERROR: this.handleError,
+      PROMOTION: this.handlePromotion
     }
-  };
+
+    handlers[data.type]?.(data)
+  }
 
   private handleState = (data: any): void => {
     this.state.currentTurn = data.turn;
@@ -143,46 +133,35 @@ export class Game {
   };
 
 	private handlePromotion = (data: any): void => {
-    this.state.resetSelection();
-    this.board.clearHighlights();
-
-    this.bus.emit("OPEN_PROMOTION_DIALOG", {
-      pieces: data.availablePieces,
-      color: data.color,
-      onSelect: (piece: any) => this.socket.send("PROMOTE", { piece })
-    });
-  };
+    this.state.promotion = data
+    this.state.resetSelection()
+    this.board.clearHighlights()
+    this.bus.emit("OPEN_PROMOTION_DIALOG", data)
+  }
 
   private onCellClick = (coord: string): void => {
-		if (this.state.promotion.active) return;
     if (!this.state.isStarted) {
-      this.bus.emit("TOAST", { message: "Сначала начните игру" });
-      return;
+      return this.toastMsg("Сначала начните игру")
     }
-
     if (!this.state.selected) {
-      const piece = this.getPiece(coord);
-      if (!piece || piece.color !== this.state.currentTurn) return;
-
-      this.state.selected = coord;
-      this.socket.send("GET_MOVES", { from: coord });
-      return;
+      const piece = this.getPiece(coord)
+      if (!piece || piece.color !== this.state.currentTurn) return
+      this.state.selected = coord
+      return this.socket.send("GET_MOVES", { from: coord })
     }
-
     if (!this.state.availableMoves.includes(coord)) {
-      this.state.resetSelection();
-      this.board.clearHighlights();
-      return;
+      this.resetSelection()
+      return
     }
 
-    this.socket.send("MOVE", {
-      from: this.state.selected,
-      to: coord
-    });
-  };
+    this.socket.send("MOVE", { from: this.state.selected, to: coord })
+  }
 
-  private getPiece = (coord: string) =>
-    this.state.pieces.find(
-      p => `${p.coordinates.file}${p.coordinates.rank}` === coord
-    );
+  private getPiece = (coord: string) => this.state.pieces.find(p => `${p.coordinates.file}${p.coordinates.rank}` === coord);
+	private toastMsg = (message: string) => this.bus.emit("TOAST", { message })
+
+  private resetSelection = () => {
+    this.state.resetSelection()
+    this.board.clearHighlights()
+  }
 }
