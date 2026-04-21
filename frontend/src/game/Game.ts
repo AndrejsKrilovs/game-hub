@@ -2,6 +2,7 @@ import { GameState } from "./GameState";
 import { GameUI } from "./GameUI";
 import { GameSocket } from "./GameSocket";
 import { Toast } from "./Toast";
+import { getSymbol } from "./Util";
 import { BoardController } from "../board/BoardController";
 
 type Color = "WHITE" | "BLACK";
@@ -55,9 +56,10 @@ export class Game {
   private finishGame = (msg: string, options?: { destroyBoard?: boolean }): void => {
     this.state.isStarted = false;
     this.state.gameOver = true;
-    this.ui.setStarted(false);
+    this.socket.send("END_GAME");
     this.socket.close();
 
+		this.ui.setStarted(false);
     if (options?.destroyBoard) {
       this.board.destroy();
     }
@@ -83,6 +85,9 @@ export class Game {
       case "ERROR":
         this.handleError(data);
         break;
+      case "PROMOTION":
+        this.handlePromotion(data);
+        break;
     }
   };
 
@@ -91,7 +96,7 @@ export class Game {
     this.state.pieces = data.pieces;
     this.state.resetSelection();
     this.board.clearHighlights();
-    this.board.render(data.pieces, this.getSymbol);
+    this.board.render(data.pieces, getSymbol);
 
     switch (data.state) {
       case "CHECK":
@@ -137,7 +142,19 @@ export class Game {
     this.bus.emit("TOAST", { message: data.message ?? "Ошибка" });
   };
 
+	private handlePromotion = (data: any): void => {
+    this.state.resetSelection();
+    this.board.clearHighlights();
+
+    this.bus.emit("OPEN_PROMOTION_DIALOG", {
+      pieces: data.availablePieces,
+      color: data.color,
+      onSelect: (piece: any) => this.socket.send("PROMOTE", { piece })
+    });
+  };
+
   private onCellClick = (coord: string): void => {
+		if (this.state.promotion.active) return;
     if (!this.state.isStarted) {
       this.bus.emit("TOAST", { message: "Сначала начните игру" });
       return;
@@ -162,19 +179,6 @@ export class Game {
       from: this.state.selected,
       to: coord
     });
-  };
-
-  private getSymbol = (type: string, color: string): string => {
-    const map: Record<string, Record<string, string>> = {
-      Pawn: { WHITE: "♙", BLACK: "♟" },
-      Rook: { WHITE: "♖", BLACK: "♜" },
-      Knight: { WHITE: "♘", BLACK: "♞" },
-      Bishop: { WHITE: "♗", BLACK: "♝" },
-      Queen: { WHITE: "♕", BLACK: "♛" },
-      King: { WHITE: "♔", BLACK: "♚" }
-    };
-
-    return map[type]?.[color] ?? "?";
   };
 
   private getPiece = (coord: string) =>

@@ -100,8 +100,13 @@ class Board {
   fun makeMove(move: Move) {
     val piece = move.piece
     this[move.from] = null
-    this[move.to] = piece
-    piece.square = move.to
+
+    val newPiece = move.promotion
+      ?.let { createPiece(it, piece.color, move.to) }
+      ?: piece
+
+    this[move.to] = newPiece
+    newPiece.square = move.to
 
     if (move.isCastling && piece is King) {
       when (move.to) {

@@ -7,5 +7,6 @@ data class Move(
   val to: Int,
   val piece: Piece,
   val captured: Piece?,
-  val isCastling: Boolean = false
+  val isCastling: Boolean = false,
+  val promotion: Char? = null
 )

@@ -7,6 +7,7 @@ import krilovs.andrejs.chess.piece.Pawn
 import krilovs.andrejs.chess.piece.Piece
 import krilovs.andrejs.chess.piece.Queen
 import krilovs.andrejs.chess.piece.Rook
+import kotlin.collections.sumOf
 
 class AlphaBetaEngine(
   private val board: Board,
@@ -57,18 +58,16 @@ class AlphaBetaEngine(
   }
 
   private fun evaluate(): Int {
-    val material = board.pieces.sumOf { piece ->
+    val score = board.pieces.sumOf { piece ->
       val value = pieceValue(piece) + positionBonus(piece)
-      if (piece.color == board.currentTurn) value else -value
+      if (piece.color == Color.WHITE) value else -value
     }
 
-    val mobility = board.generateMoves().size * MOBILITY_BONUS
-    return material + mobility
+    return if (board.currentTurn == Color.WHITE) score else -score
   }
 
   private fun positionBonus(piece: Piece): Int {
-    val center = setOf(27, 28, 35, 36) // d4 e4 d5 e5
-    return if (piece.square in center) {
+    return if (piece.square in setOf(27, 28, 35, 36)) {
       when (piece) {
         is Pawn -> 20
         is Knight, is Bishop -> 30
@@ -78,7 +77,7 @@ class AlphaBetaEngine(
   }
 
   private fun orderMoves(moves: MutableList<Move>): Unit =
-    moves.sortByDescending(::score)
+    moves.sortByDescending { score(it) + moveScore(it) }
 
   // MVV-LVA
   private fun score(m: Move): Int =
@@ -93,9 +92,20 @@ class AlphaBetaEngine(
     else -> 0
   }
 
+  private fun promotionBonus(move: Move): Int {
+    return when (move.promotion) {
+      'q' -> 900
+      'r' -> 500
+      'b', 'n' -> 300
+      else -> 0
+    }
+  }
+
+  private fun moveScore(move: Move): Int =
+    (move.captured?.let { pieceValue(it) * 10 } ?: 0) + promotionBonus(move)
+
   companion object {
     private const val INF = Int.MAX_VALUE - 1
     private const val MATE = 100_000
-    private const val MOBILITY_BONUS = 5
   }
 }

@@ -7,6 +7,14 @@ export class GameState {
   gameOver = false;
   isStarted = false;
 
+  promotion: {
+    active: boolean;
+    options: any[];
+  } = {
+    active: false,
+    options: []
+  };
+
   resetSelection() {
     this.selected = null;
     this.availableMoves = [];

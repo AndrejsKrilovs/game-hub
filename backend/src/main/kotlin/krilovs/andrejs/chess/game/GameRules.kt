@@ -1,6 +1,7 @@
 package krilovs.andrejs.chess.game
 
 import krilovs.andrejs.chess.piece.King
+import krilovs.andrejs.chess.piece.Pawn
 
 class GameRules(
   private val board: Board,
@@ -35,6 +36,17 @@ class GameRules(
       !inCheck && !hasMoves -> GameState.STALEMATE
       inCheck -> GameState.CHECK
       else -> GameState.NORMAL
+    }
+  }
+
+  fun isPromotion(move: Move): Boolean {
+    val piece = move.piece
+    if (piece !is Pawn) return false
+
+    val targetRank = move.to / 8
+    return when (piece.color) {
+      Color.WHITE -> targetRank == 7
+      Color.BLACK -> targetRank == 0
     }
   }
 

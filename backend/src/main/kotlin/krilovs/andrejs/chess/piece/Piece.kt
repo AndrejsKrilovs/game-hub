@@ -14,4 +14,13 @@ abstract class Piece(val color: Color, var square: Int) {
       moves += Move(square, to, this, target)
     }
   }
+
+  fun toDto() = mapOf(
+    "type" to type,
+    "color" to color.name,
+    "coordinates" to mapOf(
+      "file" to ('a' + (square % 8)).toString(),
+      "rank" to (square / 8) + 1
+    )
+  )
 }

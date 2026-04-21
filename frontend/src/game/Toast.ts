@@ -1,12 +1,21 @@
+import { getSymbol } from "./Util";
+
 type Color = "WHITE" | "BLACK";
 
 export class Toast {
   private element: HTMLDivElement;
 
   constructor(private bus: EventBus) {
-    this.element = document.createElement("div");
-    this.element.className = "toast";
-    document.body.appendChild(this.element);
+    const existing = document.querySelector<HTMLDivElement>(".toast");
+    if (existing) {
+      this.element = existing;
+    }
+		else {
+      this.element = document.createElement("div");
+      this.element.className = "toast";
+      document.body.appendChild(this.element);
+    }
+
     this.bind();
   }
 
@@ -20,15 +29,20 @@ export class Toast {
     this.bus.on("CONFIRM", ({ message, onConfirm }) => {
       this.showConfirm(message, onConfirm);
     });
+		this.bus.on("OPEN_PROMOTION_DIALOG", ({ pieces, color, onSelect }) => {
+      this.showPiecePicker(pieces, color, onSelect);
+    });
   };
 
   private show = (html: string, className = ""): void => {
+    this.element.innerHTML = "";
     this.element.className = `toast show ${className}`;
     this.element.innerHTML = html;
   };
 
   private hide = (): void => {
     this.element.className = "toast";
+    this.element.innerHTML = "";
   };
 
   private showMessage = (message: string, type: "info" | "error" | "success" = "info"): void => {
@@ -99,5 +113,32 @@ export class Toast {
     };
 
     this.element.querySelector("[data-cancel]")!.onclick = this.hide;
+  };
+
+	private showPiecePicker = (
+    pieces: any[],
+    color: string,
+    onSelect: (piece: any) => void
+  ): void => {
+
+    this.show(`
+      <div class="toast-content">
+        <div>Выберите фигуру</div>
+        <div class="toast-actions">
+          ${pieces.map(p => `
+            <button class="btn btn-piece" data-piece="${p}">${getSymbol(p, color)}</button>
+          `).join("")}
+        </div>
+      </div>
+    `);
+
+    this.element
+      .querySelectorAll<HTMLButtonElement>("[data-piece]")
+      .forEach(btn => {
+        btn.onclick = () => {
+          this.hide();
+          onSelect(btn.dataset.piece!);
+        };
+      });
   };
 }

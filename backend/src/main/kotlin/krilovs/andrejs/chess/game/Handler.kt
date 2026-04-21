@@ -2,7 +2,6 @@ package krilovs.andrejs.chess.game
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import krilovs.andrejs.chess.piece.Piece
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -35,6 +34,8 @@ class Handler : TextWebSocketHandler() {
     when (data["type"]?.asText()) {
       "START_GAME" -> session.handleStartGame(data)
       "GET_MOVES" -> session.handleGetMoves(data)
+      "PROMOTE" -> session.handlePromote(data)
+      "END_GAME" -> session.handleEndGame()
       "MOVE" -> session.handleMove(data)
     }
   }
@@ -56,8 +57,19 @@ class Handler : TextWebSocketHandler() {
         mapOf("availableMoves" to board.generateMovesForSquare(from).map { it.to.toCoord() })
       )
 
-    board.makeMove(move)
+    board.makeMove(move.copy(promotion = null))
     lastMove = move
+
+    if (rules.isPromotion(move)) {
+      sendEvent("PROMOTION",
+        mapOf(
+          "availablePieces" to listOf("Queen","Rook","Bishop","Knight"),
+          "color" to move.piece.color.name
+        )
+      )
+      return
+    }
+
     broadcastEvent("MOVE", move.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
     broadcastState()
@@ -71,6 +83,30 @@ class Handler : TextWebSocketHandler() {
       sendEvent("MOVE", it.toDto())
       sendEvent("STATE", buildStatePayload())
     }
+  }
+
+  private fun WebSocketSession.handleEndGame() {
+    board.reset()
+    lastMove = null
+  }
+
+  private fun WebSocketSession.handlePromote(data: JsonNode) {
+    val pieceName = data["piece"]?.asText() ?: return
+    val move = lastMove ?: return
+
+    val promotionChar = when (pieceName) {
+      "Queen" -> 'q'
+      "Rook" -> 'r'
+      "Bishop" -> 'b'
+      "Knight" -> 'n'
+      else -> return
+    }
+
+    val promotedMove = move.copy(promotion = promotionChar)
+    board.makeMove(promotedMove)
+    broadcastEvent("MOVE", promotedMove.toDto())
+    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
+    broadcastState()
   }
 
   private fun makeBotMoveIfNeeded(): Move? =
@@ -114,15 +150,6 @@ class Handler : TextWebSocketHandler() {
       isCastling && to < from -> "LONG"
       else -> null
     }
-  )
-
-  private fun Piece.toDto() = mapOf(
-    "type" to type,
-    "color" to color.name,
-    "coordinates" to mapOf(
-      "file" to ('a' + (square % 8)).toString(),
-      "rank" to (square / 8) + 1
-    )
   )
 
   private fun Board.reset() {
