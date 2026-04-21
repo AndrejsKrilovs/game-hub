@@ -11,24 +11,30 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
     val startRank = if (color == Color.WHITE) 1 else 6
 
     val one = square + dir
-    if (board.isInside(one) && board[one] == null) {
-      moves += Move(square, one, this, null)
-
+    if (board[one] == null && board.isInside(one)) {
+      addPawnMove(board, moves, one)
       val two = square + dir * 2
       if (board.rank(square) == startRank && board[two] == null) {
         moves += Move(square, two, this, null)
       }
     }
 
-    listOf(dir + 1, dir - 1)
-      .map { square + it }
-      .filter { board.isInside(it) }
-      .filter { kotlin.math.abs(board.file(square) - board.file(it)) == 1 }
-      .mapNotNull { to ->
-        board[to]?.takeIf { it.color != color }?.let { target ->
-          Move(square, to, this, target)
-        }
-      }
-      .forEach { moves += it }
+    for (to in listOf(square + dir - 1, square + dir + 1)) {
+      if (!board.isInside(to)) continue
+      if (kotlin.math.abs(board.file(square) - board.file(to)) != 1) continue
+      board[to]?.takeIf { it.color != color }?.let { addPawnMove(board, moves, to) }
+    }
+  }
+
+  private fun addPawnMove(board: Board, moves: MutableList<Move>, to: Int) {
+    val target = board[to]
+    val promotions = if (board.rank(to) == 0 || board.rank(to) == 7) PROMOTIONS else null
+    promotions?.forEach { _ ->
+      moves += Move(square, to, this, target)
+    } ?: moves.add(Move(square, to, this, target))
+  }
+
+  companion object {
+    private val PROMOTIONS = charArrayOf('q', 'r', 'b', 'n')
   }
 }
