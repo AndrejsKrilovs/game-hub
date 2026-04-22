@@ -29,8 +29,8 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
   private fun addPawnMove(board: Board, moves: MutableList<Move>, to: Int) {
     val target = board[to]
     val promotions = if (board.rank(to) == 0 || board.rank(to) == 7) PROMOTIONS else null
-    promotions?.forEach { _ ->
-      moves += Move(square, to, this, target)
+    promotions?.forEach { promo ->
+      moves += Move(square, to, this, target, promotion = promo)
     } ?: moves.add(Move(square, to, this, target))
   }
 
