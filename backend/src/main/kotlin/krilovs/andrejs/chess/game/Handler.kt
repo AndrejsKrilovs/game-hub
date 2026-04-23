@@ -8,7 +8,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class Handler : TextWebSocketHandler() {
-  private val startFEN = "4K/PPB/8/8/8/8/ppppn2P/k7 w KQkq - 0 1"
+  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   private val mapper = jacksonObjectMapper()
   private val sessions = mutableSetOf<WebSocketSession>()
   private val board = Board().apply { reset() }
