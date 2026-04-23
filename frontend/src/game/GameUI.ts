@@ -63,6 +63,16 @@ export class GameUI {
       this.historyEl.scrollTop = this.historyEl.scrollHeight;
       return;
     }
+		if (extra?.state === "CHECKMATE") {
+			this.historyEl.value += `Партия завершилась победой ${piece.color === "WHITE" ? "белых" : "чёрных"}\n`;
+      this.historyEl.scrollTop = this.historyEl.scrollHeight;
+      return;
+    }
+		if (extra?.state === "STALEMATE") {
+      this.historyEl.value += `Партия завершилась в ничью\n`;
+      this.historyEl.scrollTop = this.historyEl.scrollHeight;
+      return;
+    }
 
     const pieceNames: Record<string, string> = {
       Pawn: "пешка",

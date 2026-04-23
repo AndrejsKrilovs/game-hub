@@ -58,7 +58,6 @@ class Handler : TextWebSocketHandler() {
       )
 
     if (rules.isPromotion(move)) {
-      lastMove = move
       sendEvent("PROMOTION",
         mapOf(
           "availablePieces" to listOf("Queen","Rook","Bishop","Knight"),
@@ -69,7 +68,7 @@ class Handler : TextWebSocketHandler() {
     }
 
     board.makeMove(move)
-    lastMove = null
+    lastMove = move
 
     broadcastEvent("MOVE", move.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
@@ -104,7 +103,7 @@ class Handler : TextWebSocketHandler() {
 
     val promotedMove = move.copy(promotion = promotionChar)
     board.makeMove(promotedMove)
-    lastMove = null
+    lastMove = promotedMove
 
     broadcastEvent("MOVE", promotedMove.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
@@ -113,7 +112,7 @@ class Handler : TextWebSocketHandler() {
 
   private fun makeBotMoveIfNeeded(): Move? =
     engine.takeIf { board.currentTurn == botColor }
-      ?.findBestMove(1)
+      ?.findBestMove(3)
       ?.also {
         board.makeMove(it)
         lastMove = it

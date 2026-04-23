@@ -93,9 +93,11 @@ export class Game {
         this.bus.emit("TOAST", { message: "ШАХ!" });
         break;
       case "CHECKMATE":
+        this.ui.addToHistory(data.lastMove, data.lastMove.from, data.lastMove.to, { state: data.state });
         this.finishGame("МАТ!");
         break;
       case "STALEMATE":
+        this.ui.addToHistory(data.lastMove, data.lastMove.from, data.lastMove.to, { state: data.state });
         this.finishGame("Ничья, доступных ходов больше нет");
         break;
     }
