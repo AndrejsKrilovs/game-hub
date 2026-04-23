@@ -8,7 +8,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class Handler : TextWebSocketHandler() {
-  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  private val startFEN = "4K/PPB/8/8/8/8/ppppn2P/k7 w KQkq - 0 1"
   private val mapper = jacksonObjectMapper()
   private val sessions = mutableSetOf<WebSocketSession>()
   private val board = Board().apply { reset() }
@@ -57,10 +57,8 @@ class Handler : TextWebSocketHandler() {
         mapOf("availableMoves" to board.generateMovesForSquare(from).map { it.to.toCoord() })
       )
 
-    board.makeMove(move.copy(promotion = null))
-    lastMove = move
-
     if (rules.isPromotion(move)) {
+      lastMove = move
       sendEvent("PROMOTION",
         mapOf(
           "availablePieces" to listOf("Queen","Rook","Bishop","Knight"),
@@ -69,6 +67,9 @@ class Handler : TextWebSocketHandler() {
       )
       return
     }
+
+    board.makeMove(move)
+    lastMove = null
 
     broadcastEvent("MOVE", move.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
@@ -93,17 +94,18 @@ class Handler : TextWebSocketHandler() {
   private fun WebSocketSession.handlePromote(data: JsonNode) {
     val pieceName = data["piece"]?.asText() ?: return
     val move = lastMove ?: return
-
     val promotionChar = when (pieceName) {
       "Queen" -> 'q'
       "Rook" -> 'r'
       "Bishop" -> 'b'
       "Knight" -> 'n'
       else -> return
-    }
+    }.let { if (move.piece.color == Color.WHITE) it.uppercaseChar() else it }
 
     val promotedMove = move.copy(promotion = promotionChar)
     board.makeMove(promotedMove)
+    lastMove = null
+
     broadcastEvent("MOVE", promotedMove.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
     broadcastState()
@@ -111,7 +113,7 @@ class Handler : TextWebSocketHandler() {
 
   private fun makeBotMoveIfNeeded(): Move? =
     engine.takeIf { board.currentTurn == botColor }
-      ?.findBestMove(3)
+      ?.findBestMove(1)
       ?.also {
         board.makeMove(it)
         lastMove = it

@@ -2,8 +2,6 @@ type Events = {
   SOCKET_MESSAGE: any
   CELL_CLICK: string
   TOAST: { message: string; type?: "info" | "error" | "success" }
-  OPEN_PROMOTION_DIALOG: { pieces: string[]; color: string }
-  PROMOTE: { piece: string }
 }
 
 export class EventBus {

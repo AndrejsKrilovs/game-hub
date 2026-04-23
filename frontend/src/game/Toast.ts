@@ -115,19 +115,32 @@ export class Toast {
     this.element.querySelector("[data-cancel]")!.onclick = this.hide;
   };
 
-	private showPiecePicker = (pieces: string[]): void => {
+	private showPiecePicker = (pieces: string[], color: string, onSelect: (piece: string) => void): void => {
+		let selectedPiece: string | null = null;
+
     this.show(`
       <div class="toast-content">
         <div>Выберите фигуру</div>
-        <div class="toast-actions">${pieces.map(p => `<button data-piece="${p}">${p}</button>`).join("")}</div>
+        <div class="toast-actions">
+          ${
+						pieces
+							.map(p => `<button class="btn btn-end" data-piece="${p}">${getSymbol(p, color)}</button>`)
+							.join("")
+          }
+        </div>
       </div>
     `)
 
-    this.element.onclick = (e) => {
-      const btn = (e.target as HTMLElement).closest("[data-piece]") as HTMLElement
-      if (!btn) return
-      this.hide()
-      this.bus.emit("PROMOTE", { piece: btn.dataset.piece! })
-    }
+		const buttons = [...this.element.querySelectorAll<HTMLButtonElement>("[data-piece]")];
+		buttons.forEach(btn => {
+      btn.onclick = () => {
+        const p = btn.dataset.piece as string;
+        selectedPiece = p;
+        buttons.forEach(b => b.classList.remove("btn-selected"));
+        btn.classList.add("btn-selected");
+        this.hide();
+        onSelect(selectedPiece);
+      };
+    });
   }
 }

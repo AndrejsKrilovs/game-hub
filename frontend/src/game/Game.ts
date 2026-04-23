@@ -133,11 +133,12 @@ export class Game {
   };
 
 	private handlePromotion = (data: any): void => {
-    this.state.promotion = data
-    this.state.resetSelection()
-    this.board.clearHighlights()
-    this.bus.emit("OPEN_PROMOTION_DIALOG", data)
-  }
+		this.bus.emit("OPEN_PROMOTION_DIALOG", {
+			pieces: data.availablePieces,
+			color: data.color,
+			onSelect: (piece: string) => this.socket.send("PROMOTE", { piece, color: data.color })
+    });
+	}
 
   private onCellClick = (coord: string): void => {
     if (!this.state.isStarted) {
