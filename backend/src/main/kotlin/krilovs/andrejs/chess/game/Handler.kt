@@ -112,7 +112,7 @@ class Handler : TextWebSocketHandler() {
 
   private fun makeBotMoveIfNeeded(): Move? =
     engine.takeIf { board.currentTurn == botColor }
-      ?.findBestMove(1)
+      ?.findBestMove(3)
       ?.also {
         board.makeMove(it)
         lastMove = it
