@@ -101,9 +101,13 @@ class Board {
     val piece = move.piece
     this[move.from] = null
 
-    val newPiece = move.promotion
-      ?.let { createPiece(it, piece.color, move.to) }
-      ?: piece
+    val newPiece = when (move.promotion) {
+      'q' -> Queen(piece.color, move.to)
+      'r' -> Rook(piece.color, move.to)
+      'b' -> Bishop(piece.color, move.to)
+      'n' -> Knight(piece.color, move.to)
+      else -> piece
+    }
 
     this[move.to] = newPiece
     newPiece.square = move.to
@@ -189,8 +193,8 @@ class Board {
     rook.square = to
   }
 
-  private fun createPiece(type: Char, color: Color, square: Int): Piece =
-    when (type.lowercaseChar()) {
+  private fun createPiece(type: Char?, color: Color, square: Int): Piece =
+    when (type?.lowercaseChar()) {
       'p' -> Pawn(color, square)
       'r' -> Rook(color, square)
       'n' -> Knight(color, square)

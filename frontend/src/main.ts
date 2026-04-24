@@ -1,7 +1,8 @@
 import './style.css'
-import { Game } from './game/Game'
-import { EventBus } from './EventBus'
+import { eventBus } from './EventBus'
+import { sidebarComponent } from './sidebar/SidebarComponent'
+import { sidebarController } from './sidebar/SidebarController'
 
-const bus = new EventBus()
-
-new Game(bus)
+const rootElement: HTMLElement = document.getElementById("sidebar")!
+sidebarComponent.init(eventBus, rootElement)
+sidebarController.control(eventBus, rootElement)
