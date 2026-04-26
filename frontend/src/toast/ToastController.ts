@@ -20,11 +20,6 @@ class ToastController {
       currentComponent = "end"
       render(endGameComponent)
     })
-    eventBus.on("HIDE_TOAST", () => {
-      root.classList.remove("show")
-      root.innerHTML = ""
-      currentComponent = null
-    })
 
     root.addEventListener("click", (e) => {
       const target = e.target as HTMLElement
@@ -38,15 +33,18 @@ class ToastController {
         if (target.matches("[data-start]")) {
           if (!color) return
           root.classList.remove("show")
+          root.innerHTML = ""
           eventBus.emit("START_GAME", { color })
         }
       }
       if (currentComponent === "end") {
         if (target.matches("[data-yes]")) {
           root.classList.remove("show")
+          root.innerHTML = ""
           eventBus.emit("END_GAME")
         }
         if (target.matches("[data-no]")) {
+					root.innerHTML = ""
           root.classList.remove("show")
         }
       }
