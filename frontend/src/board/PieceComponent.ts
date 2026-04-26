@@ -21,7 +21,7 @@ class PieceComponent {
       const coord = `${p.coordinates.file}${p.coordinates.rank}`
       const cell = root.querySelector(`[data-pos="${coord}"]`)
       if (!cell) return
-      cell.textContent = getSymbol(p.type, p.color)
+      cell.innerHTML = `<span data-piece="${p.color}_${p.type}">${getSymbol(p.type, p.color)}</span>`
     })
   }
 }

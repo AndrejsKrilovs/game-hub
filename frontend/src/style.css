@@ -159,8 +159,11 @@ body {
 
 .toast-message {
   display: flex;
-  align-items: center;
   gap: 8px;
+}
+
+.toast-text {
+  white-space: pre-line;
 }
 
 .toast-actions {

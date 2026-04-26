@@ -88,7 +88,7 @@ class Handler : TextWebSocketHandler() {
   private fun WebSocketSession.handleEndGame() {
     board.reset()
     lastMove = null
-    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочна"))
+    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
   }
 
   private fun WebSocketSession.handlePromote(data: JsonNode) {
