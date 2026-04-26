@@ -22,6 +22,7 @@ class SidebarController {
     eventBus.on("WS:GAME_ENDED", (payload) => {
       startBtn.classList.remove("hidden")
       endBtn.classList.add("hidden")
+      eventBus.emit("TOAST", payload)
     })
   }
 }

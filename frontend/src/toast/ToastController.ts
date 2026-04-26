@@ -1,24 +1,36 @@
 import { colorComponent } from "./ColorComponent"
 import { endGameComponent } from "./EndGameComponent"
+import { messageComponent } from "./MessageComponent"
 
 class ToastController {
   control = (eventBus: EventBus, root: HTMLElement) => {
     let color: string | null = null
-    let currentComponent: "color" | "end" | null = null
+    let currentComponent: "color" | "end" | "message" | null = null
 
-    const render = (component: { init: (el: HTMLElement) => void }) => {
+    const clear = () => {
+      root.classList.remove("show", "info", "success", "error")
       root.innerHTML = ""
-      component.init(root)
-      root.classList.add("show")
+      currentComponent = null
+    }
+
+    const render = (component: { init: (el: HTMLElement, msg?: string) => void }, message?: string) => {
+      component.init(root, message)
+			message ? root.classList.add("info", "show") : root.classList.add("show")
     }
 
     eventBus.on("SHOW_COLOR_PICKER", () => {
       currentComponent = "color"
+      color = null
       render(colorComponent)
     })
     eventBus.on("SHOW_END_CONFIRM", () => {
       currentComponent = "end"
       render(endGameComponent)
+    })
+    eventBus.on("TOAST", (payload) => {
+      currentComponent = "message"
+      render(messageComponent, payload?.message)
+      setTimeout(clear, 2000)
     })
 
     root.addEventListener("click", (e) => {
@@ -32,21 +44,18 @@ class ToastController {
         }
         if (target.matches("[data-start]")) {
           if (!color) return
-          root.classList.remove("show")
-          root.innerHTML = ""
+          clear()
           eventBus.emit("START_GAME", { color })
         }
       }
       if (currentComponent === "end") {
         if (target.matches("[data-yes]")) {
-          root.classList.remove("show")
-          root.innerHTML = ""
+          clear()
           color = null
           eventBus.emit("END_GAME")
         }
         if (target.matches("[data-no]")) {
-					root.innerHTML = ""
-          root.classList.remove("show")
+          clear()
         }
       }
     })
