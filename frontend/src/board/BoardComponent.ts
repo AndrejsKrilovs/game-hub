@@ -21,9 +21,8 @@ class BoardComponent {
 
       return html
     }
-    root.innerHTML = `
-      <div class="board">${renderCells()}</div>
-    `
+
+		root.innerHTML = `<div class="board">${renderCells()}</div>`
   }
 }
 
