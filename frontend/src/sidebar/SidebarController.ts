@@ -19,7 +19,7 @@ class SidebarController {
       endBtn.classList.remove("hidden")
       eventBus.emit("SHOW_COLOR_PICKER")
     })
-    eventBus.on("WS:GAME_ENDED", (payload) => {
+    eventBus.on("GAME_ENDED", (payload) => {
       startBtn.classList.remove("hidden")
       endBtn.classList.add("hidden")
       eventBus.emit("TOAST", payload)

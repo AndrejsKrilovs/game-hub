@@ -175,7 +175,7 @@ body {
 .toast.info .toast-content { border-left: 4px solid #2d6cdf; }
 .toast.success .toast-content { border-left: 4px solid #2ea043; }
 .toast.error .toast-content { border-left: 4px solid #d73a49; }
-/*
+
 .board {
   display: grid;
   grid-template: repeat(8, var(--cell-size)) / repeat(8, var(--cell-size));
@@ -223,4 +223,3 @@ body {
   top: 4px;
   left: 6px;
 }
-*/
