@@ -41,6 +41,7 @@ class ToastController {
         if (target.matches("[data-yes]")) {
           root.classList.remove("show")
           root.innerHTML = ""
+          color = null
           eventBus.emit("END_GAME")
         }
         if (target.matches("[data-no]")) {
