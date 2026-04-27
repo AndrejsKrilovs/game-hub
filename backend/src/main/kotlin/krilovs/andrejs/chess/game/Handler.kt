@@ -37,36 +37,47 @@ class Handler : TextWebSocketHandler() {
       "START_GAME" -> session.handleStartGame(payload)
       "GET_MOVES" -> session.handleGetMoves(payload)
       "PROMOTE" -> session.handlePromote(payload)
+      "MAKE_MOVE" -> session.handleMove(payload)
       "END_GAME" -> session.handleEndGame()
-      "MOVE" -> session.handleMove(payload)
     }
   }
 
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
-    val moves = board.generateMovesForSquare(from).map { it.to.toCoord() }
-    sendEvent("MOVES", mapOf("moves" to moves))
+    val piece = board[from] ?: return sendEvent("ERROR", mapOf("message" to "Пустая клетка"))
+
+    if (piece.color != board.currentTurn) {
+      return sendEvent("ERROR", mapOf("message" to "Фигура другого цвета"))
+    }
+
+    board.generateMovesForSquare(from)
+      .takeIf { it.isNotEmpty() }
+      ?.map { it.to.toCoord() }
+      ?.also { sendEvent("MOVES", mapOf("moves" to it)) }
+      ?: sendEvent("ERROR", mapOf("message" to "Нет доступных ходов"))
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
     val to = data["to"]?.asText()?.toSquare() ?: return
+    val moves = board.generateMovesForSquare(from)
 
-    val move = board.generateMovesForSquare(from)
-      .firstOrNull { it.to == to }
+    val move = moves.firstOrNull { it.to == to }
       ?: return sendEvent(
-        "INVALID_MOVE",
-        mapOf("availableMoves" to board.generateMovesForSquare(from).map { it.to.toCoord() })
+        "ERROR",
+        mapOf(
+          "message" to moves.joinToString(", ", "Некорректный ход\nДоступные ходы: ") { it.to.toCoord() }
+        )
       )
 
     if (rules.isPromotion(move)) {
-      sendEvent("PROMOTION",
+      return sendEvent(
+        "PROMOTION",
         mapOf(
-          "availablePieces" to listOf("Queen","Rook","Bishop","Knight"),
+          "availablePieces" to listOf("Queen", "Rook", "Bishop", "Knight"),
           "color" to move.piece.color.name
         )
       )
-      return
     }
 
     board.makeMove(move)

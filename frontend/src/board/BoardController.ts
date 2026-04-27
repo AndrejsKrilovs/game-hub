@@ -10,7 +10,7 @@ class BoardController {
       const target = e.target as HTMLElement
       const cell = target.closest<HTMLElement>(".cell")
 			if (!cell) return
-      eventBus.emit("CELL_CLICK", { cell, turnColor })
+      eventBus.emit("CELL_CLICK", { cord: cell.dataset.pos })
     })
 
     eventBus.on("WS:STATE", (payload) => {
