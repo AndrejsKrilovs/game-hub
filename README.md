@@ -1,6 +1,8 @@
 # ♟ Chess Game (WebSocket + AI)
 
-Real-time шахматное приложение с AI (Alpha-Beta pruning), написанное на Kotlin (backend) и TypeScript (frontend).
+Real-time шахматное приложение с AI (Alpha-Beta pruning), написанное на **Kotlin (backend)** и **TypeScript (frontend)**.
+
+---
 
 ## 🚀 Features
 
@@ -10,6 +12,7 @@ Real-time шахматное приложение с AI (Alpha-Beta pruning), н
 - 🎨 UI на TypeScript
 - 📜 История ходов
 - ♜ Рокировки, шах, мат, пат
+- ♟ Превращение пешки (promotion)
 
 ---
 
@@ -27,11 +30,7 @@ Game Engine (Board + Rules + AI)
 
 ### Backend
 
-```bash
 ./gradlew bootRun
-```
-
-Приложение доступно по адресу:
 
 http://localhost:8080
 
@@ -39,29 +38,138 @@ http://localhost:8080
 
 ## 📡 WebSocket API
 
-### START_GAME
-```json
-{ "type": "START_GAME", "color": "WHITE" }
-```
+Все сообщения имеют формат:
 
-### MOVE
-```json
-{ "type": "MOVE", "from": "e2", "to": "e4" }
-```
+{
+  "type": "EVENT_TYPE",
+  "payload": {}
+}
+
+---
+
+### START_GAME
+
+{
+  "type": "START_GAME",
+  "payload": { "color": "WHITE" }
+}
+
+---
+
+### END_GAME
+
+{
+  "type": "END_GAME"
+}
+
+---
 
 ### GET_MOVES
-```json
-{ "type": "GET_MOVES", "from": "e2" }
-```
+
+{
+  "type": "GET_MOVES",
+  "payload": { "from": "e2" }
+}
+
+Ответ:
+
+{
+  "type": "MOVES",
+  "payload": {
+    "moves": ["e3", "e4"]
+  }
+}
+
+---
+
+### MAKE_MOVE
+
+{
+  "type": "MAKE_MOVE",
+  "payload": {
+    "from": "e2",
+    "to": "e4"
+  }
+}
+
+Ответ:
+
+{
+  "type": "MOVE",
+  "payload": {
+    "from": "e2",
+    "to": "e4",
+    "piece": "Pawn",
+    "color": "WHITE",
+    "isCastling": false,
+    "castlingType": null
+  }
+}
+
+---
+
+### PROMOTION
+
+Сервер:
+
+{
+  "type": "PROMOTION",
+  "payload": {
+    "availablePieces": ["Queen", "Rook", "Bishop", "Knight"],
+    "color": "WHITE"
+  }
+}
+
+Клиент:
+
+{
+  "type": "PROMOTE",
+  "payload": {
+    "piece": "Queen"
+  }
+}
+
+---
+
+### STATE
+
+{
+  "type": "STATE",
+  "payload": {
+    "pieces": [...],
+    "turn": "WHITE",
+    "state": "NORMAL"
+  }
+}
+
+---
+
+### ERROR
+
+{
+  "type": "ERROR",
+  "payload": {
+    "message": "Некорректный ход"
+  }
+}
+
+---
+
+### GAME_ENDED
+
+{
+  "type": "GAME_ENDED",
+  "payload": {
+    "message": "Партия завершена досрочно"
+  }
+}
 
 ---
 
 ## 🧠 AI
 
-Используется алгоритм:
-
 - Alpha-Beta pruning
-- Depth: 3
+- Depth: 3–4
 
 ---
 
@@ -70,15 +178,6 @@ http://localhost:8080
 - Kotlin (Spring Boot, WebSocket)
 - TypeScript
 - Docker
-
----
-
-## 🚀 TODO
-
-- Multiplayer (онлайн игра)
-- ELO рейтинг
-- Сохранение партий
-- Анимации ходов
 
 ---
 
