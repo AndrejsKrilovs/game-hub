@@ -1,5 +1,6 @@
 class GameController {
 	control = (eventBus: EventBus) => {
+		let lastMove: any = null
     let selectedCell: string | null = null
 
 		eventBus.on("END_GAME", () => eventBus.emit("WS_SEND", { type: "END_GAME" }))
@@ -19,6 +20,7 @@ class GameController {
       selectedCell = null
     })
 
+		eventBus.on("WS:MOVE", (payload) => lastMove = payload)
 		eventBus.on("WS:GAME_ENDED", (payload) => eventBus.emit("GAME_ENDED", payload))
     eventBus.on("WS:MOVES", ({ moves }) => eventBus.emit("HIGHLIGHT_MOVES", moves))
     eventBus.on("WS:ERROR", ({ message }) => {
@@ -27,15 +29,21 @@ class GameController {
     })
 		eventBus.on("WS:STATE", ({ state, turn, pieces }) => {
 			eventBus.emit("UPDATE_BOARD", { turn, pieces })
+			if (lastMove) {
+          eventBus.emit("ADD_HISTORY", { ...lastMove, state })
+          lastMove = null
+      }
 			switch (state) {
 				case "CHECK":
 					eventBus.emit("TOAST", { message: "ШАХ!" })
 					break
 				case "STALEMATE":
 					eventBus.emit("TOAST", { message: "Партия завершилась в ничью!" })
+					eventBus.emit("ADD_HISTORY", { text: "Партия завершилась в ничью!" })
 					break
 				case "CHECKMATE":
 					eventBus.emit("TOAST", { message: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
+					eventBus.emit("ADD_HISTORY", { text: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
 					break
 			}
 		})

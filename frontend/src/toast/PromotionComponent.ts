@@ -1,4 +1,4 @@
-import { getSymbol } from "../board/PieceComponent"
+import { pieceMetadata } from "../board/PieceComponent"
 
 class PromotionComponent {
   init = (root: HTMLElement, data?: any) => {
@@ -8,7 +8,7 @@ class PromotionComponent {
         <div class="toast-actions">
           ${
       		  data.availablePieces
-      			  .map(p => `<button class="btn btn-end" data-piece="${p}">${getSymbol(p, data.color)}</button>`)
+      			  .map(p => `<button class="btn btn-end" data-piece="${p}">${pieceMetadata[p]?.[data.color] ?? "?"}</button>`)
       				.join("")
           }
         </div>

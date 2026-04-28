@@ -12,19 +12,18 @@ class PieceComponent {
       const coord = `${p.coordinates.file}${p.coordinates.rank}`
       const cell = root.querySelector(`[data-pos="${coord}"]`)
       if (!cell) return
-      cell.innerHTML = `<span data-piece="${p.color}_${p.type}">${getSymbol(p.type, p.color)}</span>`
+      cell.innerHTML = `<span data-piece="${p.color}_${p.type}">${pieceMetadata[p.type]?.[p.color] ?? "?"}</span>`
     })
   }
 }
 
 export const pieceComponent = new PieceComponent()
 
-export const getSymbol =
-	(type: PieceName, color: "WHITE" | "BLACK"): string => ({
-    Pawn: { WHITE: "♙", BLACK: "♟" },
-    Rook: { WHITE: "♖", BLACK: "♜" },
-    Knight: { WHITE: "♘", BLACK: "♞" },
-    Bishop: { WHITE: "♗", BLACK: "♝" },
-    Queen: { WHITE: "♕", BLACK: "♛" },
-    King: { WHITE: "♔", BLACK: "♚" }
-	}[type]?.[color] ?? "?")
+export const pieceMetadata = {
+  Pawn: { name: "пешка", WHITE: "♙", BLACK: "♟" },
+  Rook: { name: "ладья", WHITE: "♖", BLACK: "♜" },
+  Knight: { name: "конь", WHITE: "♘", BLACK: "♞" },
+  Bishop: { name: "слон", WHITE: "♗", BLACK: "♝" },
+  Queen: { name: "ферзь", WHITE: "♕", BLACK: "♛" },
+  King: { name: "король", WHITE: "♔", BLACK: "♚" }
+} as const
