@@ -13,13 +13,13 @@ class BoardController {
       eventBus.emit("CELL_CLICK", { cord: cell.dataset.pos })
     })
 
-    eventBus.on("WS:STATE", (payload) => {
+    eventBus.on("UPDATE_BOARD", ({ turn, pieces }) => {
       boardComponent.init(root)
       board = root.querySelector(".board")
       if (!board) return
 
-      turnColor = payload.turn
-      pieceComponent.init(board, payload.pieces)
+      turnColor = turn
+      pieceComponent.init(board, pieces)
     })
     eventBus.on("GAME_ENDED", () => {
       root.innerHTML = ""

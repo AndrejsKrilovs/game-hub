@@ -19,6 +19,11 @@ class Handler : TextWebSocketHandler() {
 
   private var botColor = Color.BLACK
   private var pendingMove: Move? = null
+  private val positionHistory = mutableMapOf<String, Int>()
+
+  init {
+    rules.isThreefoldRepetition = { isThreefoldRepetition() }
+  }
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -103,9 +108,15 @@ class Handler : TextWebSocketHandler() {
 
   private fun WebSocketSession.handleStartGame(data: JsonNode) {
     board.reset()
+    positionHistory.clear()
+    recordPosition()
+
     pendingMove = null
     botColor = Color.valueOf(data["color"].asText()).opposite()
-    makeBotMoveIfNeeded()?.let { sendEvent("MOVE", it.toDto()) }
+    makeBotMoveIfNeeded()?.let {
+      recordPosition()
+      sendEvent("MOVE", it.toDto())
+    }
     sendEvent("STATE", buildStatePayload())
   }
 
@@ -122,8 +133,12 @@ class Handler : TextWebSocketHandler() {
 
   private fun applyMove(move: Move) {
     board.makeMove(move)
+    recordPosition()
     broadcastEvent("MOVE", move.toDto())
-    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
+    makeBotMoveIfNeeded()?.let {
+      recordPosition()
+      broadcastEvent("MOVE", it.toDto())
+    }
     broadcastState()
   }
 
@@ -158,6 +173,16 @@ class Handler : TextWebSocketHandler() {
 
   private fun Board.reset() {
     loadFromFEN(startFEN)
+  }
+
+  private fun recordPosition() {
+    val fen = board.toFEN()
+    positionHistory[fen] = (positionHistory[fen] ?: 0) + 1
+  }
+
+  private fun isThreefoldRepetition(): Boolean {
+    val fen = board.toFEN()
+    return (positionHistory[fen] ?: 0) >= 3
   }
 
   private fun Int.toCoord() = "${'a' + (this % 8)}${(this / 8) + 1}"

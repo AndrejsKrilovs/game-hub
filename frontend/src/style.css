@@ -46,6 +46,10 @@ body {
   padding: 20px;
 }
 
+#app label {
+	color: var(--text);
+}
+
 .btn {
   padding: 10px;
   border: none;

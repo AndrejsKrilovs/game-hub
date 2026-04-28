@@ -25,6 +25,20 @@ class GameController {
 			selectedCell = null
 			eventBus.emit("TOAST", { message })
     })
+		eventBus.on("WS:STATE", ({ state, turn, pieces }) => {
+			eventBus.emit("UPDATE_BOARD", { turn, pieces })
+			switch (state) {
+				case "CHECK":
+					eventBus.emit("TOAST", { message: "ШАХ!" })
+					break
+				case "STALEMATE":
+					eventBus.emit("TOAST", { message: "Партия завершилась в ничью!" })
+					break
+				case "CHECKMATE":
+					eventBus.emit("TOAST", { message: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
+					break
+			}
+		})
 	}
 }
 
