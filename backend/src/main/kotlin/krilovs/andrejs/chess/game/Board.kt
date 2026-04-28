@@ -189,8 +189,8 @@ class Board {
     rook.square = to
   }
 
-  private fun createPiece(type: Char, color: Color, square: Int): Piece =
-    when (type.lowercaseChar()) {
+  private fun createPiece(type: Char?, color: Color, square: Int): Piece =
+    when (type?.lowercaseChar()) {
       'p' -> Pawn(color, square)
       'r' -> Rook(color, square)
       'n' -> Knight(color, square)

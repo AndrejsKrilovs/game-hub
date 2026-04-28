@@ -8,7 +8,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class Handler : TextWebSocketHandler() {
-  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  private val startFEN = "4K/PPB/8/8/8/8/ppppn2P/k7 b KQkq - 0 1"
   private val mapper = jacksonObjectMapper()
   private val sessions = mutableSetOf<WebSocketSession>()
   private val board = Board().apply { reset() }
@@ -18,11 +18,15 @@ class Handler : TextWebSocketHandler() {
   private val engine = AlphaBetaEngine(board, rules)
 
   private var botColor = Color.BLACK
-  private var lastMove: Move? = null
+  private var pendingMove: Move? = null
+  private val positionHistory = mutableMapOf<String, Int>()
+
+  init {
+    rules.isThreefoldRepetition = { isThreefoldRepetition() }
+  }
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
-    session.sendEvent("INIT", buildStatePayload())
   }
 
   override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
@@ -31,68 +35,64 @@ class Handler : TextWebSocketHandler() {
 
   override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
     val data = mapper.readTree(message.payload)
-    when (data["type"]?.asText()) {
-      "START_GAME" -> session.handleStartGame(data)
-      "GET_MOVES" -> session.handleGetMoves(data)
-      "PROMOTE" -> session.handlePromote(data)
+    val type = data["type"]?.asText()
+    val payload = data["payload"]
+
+    when (type) {
+      "START_GAME" -> session.handleStartGame(payload)
+      "GET_MOVES" -> session.handleGetMoves(payload)
+      "PROMOTE" -> session.handlePromote(payload)
+      "MAKE_MOVE" -> session.handleMove(payload)
       "END_GAME" -> session.handleEndGame()
-      "MOVE" -> session.handleMove(data)
     }
   }
 
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
-    val moves = board.generateMovesForSquare(from).map { it.to.toCoord() }
-    sendEvent("MOVES", mapOf("moves" to moves))
+    val piece = board[from] ?: return sendEvent("ERROR", mapOf("message" to "Пустая клетка"))
+
+    if (piece.color != board.currentTurn) {
+      return sendEvent("ERROR", mapOf("message" to "Фигура другого цвета"))
+    }
+
+    board.generateMovesForSquare(from)
+      .takeIf { it.isNotEmpty() }
+      ?.map { it.to.toCoord() }
+      ?.also { sendEvent("MOVES", mapOf("moves" to it)) }
+      ?: sendEvent("ERROR", mapOf("message" to "Нет доступных ходов"))
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
     val from = data["from"]?.asText()?.toSquare() ?: return
     val to = data["to"]?.asText()?.toSquare() ?: return
+    val moves = board.generateMovesForSquare(from)
 
-    val move = board.generateMovesForSquare(from)
-      .firstOrNull { it.to == to }
+    val move = moves.firstOrNull { it.to == to }
       ?: return sendEvent(
-        "INVALID_MOVE",
-        mapOf("availableMoves" to board.generateMovesForSquare(from).map { it.to.toCoord() })
+        "ERROR",
+        mapOf(
+          "message" to moves.joinToString(", ", "Некорректный ход\nДоступные ходы: ") { it.to.toCoord() }
+        )
       )
 
     if (rules.isPromotion(move)) {
-      sendEvent("PROMOTION",
+      pendingMove = move
+      return sendEvent(
+        "PROMOTION",
         mapOf(
-          "availablePieces" to listOf("Queen","Rook","Bishop","Knight"),
+          "availablePieces" to listOf("Queen", "Rook", "Bishop", "Knight"),
           "color" to move.piece.color.name
         )
       )
-      return
     }
 
-    board.makeMove(move)
-    lastMove = move
-
-    broadcastEvent("MOVE", move.toDto())
-    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
-    broadcastState()
-  }
-
-  private fun WebSocketSession.handleStartGame(data: JsonNode) {
-    board.reset()
-    lastMove = null
-    botColor = Color.valueOf(data["color"].asText()).opposite()
-    makeBotMoveIfNeeded()?.let {
-      sendEvent("MOVE", it.toDto())
-      sendEvent("STATE", buildStatePayload())
-    }
-  }
-
-  private fun WebSocketSession.handleEndGame() {
-    board.reset()
-    lastMove = null
+    applyMove(move)
   }
 
   private fun WebSocketSession.handlePromote(data: JsonNode) {
+    val move = pendingMove ?: return
     val pieceName = data["piece"]?.asText() ?: return
-    val move = lastMove ?: return
+
     val promotionChar = when (pieceName) {
       "Queen" -> 'q'
       "Rook" -> 'r'
@@ -102,35 +102,53 @@ class Handler : TextWebSocketHandler() {
     }.let { if (move.piece.color == Color.WHITE) it.uppercaseChar() else it }
 
     val promotedMove = move.copy(promotion = promotionChar)
-    board.makeMove(promotedMove)
-    lastMove = promotedMove
+    pendingMove = null
+    applyMove(promotedMove)
+  }
 
-    broadcastEvent("MOVE", promotedMove.toDto())
-    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
+  private fun WebSocketSession.handleStartGame(data: JsonNode) {
+    board.reset()
+    positionHistory.clear()
+    recordPosition()
+
+    pendingMove = null
+    botColor = Color.valueOf(data["color"].asText()).opposite()
+    makeBotMoveIfNeeded()?.let {
+      recordPosition()
+      sendEvent("MOVE", it.toDto())
+    }
+    sendEvent("STATE", buildStatePayload())
+  }
+
+  private fun WebSocketSession.handleEndGame() {
+    board.reset()
+    pendingMove = null
+    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
+  }
+
+  private fun WebSocketSession.sendEvent(type: String, payload: Any?) {
+    val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
+    sendMessage(TextMessage(json))
+  }
+
+  private fun applyMove(move: Move) {
+    board.makeMove(move)
+    recordPosition()
+    broadcastEvent("MOVE", move.toDto())
+    makeBotMoveIfNeeded()?.let {
+      recordPosition()
+      broadcastEvent("MOVE", it.toDto())
+    }
     broadcastState()
   }
 
   private fun makeBotMoveIfNeeded(): Move? =
     engine.takeIf { board.currentTurn == botColor }
       ?.findBestMove(4)
-      ?.also {
-        board.makeMove(it)
-        lastMove = it
-      }
+      ?.also { board.makeMove(it) }
 
-  private fun broadcastState() {
-    broadcastEvent("STATE", buildStatePayload() + mapOf(
-      "lastMove" to lastMove?.toDto()
-    ))
-  }
-
-  private fun WebSocketSession.sendEvent(type: String, payload: Map<String, Any?>) {
-    val json = mapper.writeValueAsString(payload + ("type" to type))
-    sendMessage(TextMessage(json))
-  }
-
-  private fun broadcastEvent(type: String, payload: Map<String, Any?>) {
-    val json = mapper.writeValueAsString(payload + ("type" to type))
+  private fun broadcastEvent(type: String, payload: Any?) {
+    val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
     sessions.forEach { it.sendMessage(TextMessage(json)) }
   }
 
@@ -157,6 +175,17 @@ class Handler : TextWebSocketHandler() {
     loadFromFEN(startFEN)
   }
 
+  private fun recordPosition() {
+    val fen = board.toFEN()
+    positionHistory[fen] = (positionHistory[fen] ?: 0) + 1
+  }
+
+  private fun isThreefoldRepetition(): Boolean {
+    val fen = board.toFEN()
+    return (positionHistory[fen] ?: 0) >= 3
+  }
+
   private fun Int.toCoord() = "${'a' + (this % 8)}${(this / 8) + 1}"
+  private fun broadcastState() = broadcastEvent("STATE", buildStatePayload())
   private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
 }

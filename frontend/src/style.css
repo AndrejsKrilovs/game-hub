@@ -46,36 +46,8 @@ body {
   padding: 20px;
 }
 
-.board {
-  display: grid;
-  grid-template: repeat(8, var(--cell-size)) / repeat(8, var(--cell-size));
-
-  border-radius: 12px;
-  overflow: hidden;
-
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-.cell {
-  position: relative;
-  display: grid;
-  place-items: center;
-
-  font-size: 32px;
-  cursor: pointer;
-
-  transition: filter 0.15s ease;
-}
-
-.cell.light { background: var(--light-cell); }
-.cell.dark { background: var(--dark-cell); }
-
-.cell:hover {
-  filter: brightness(1.1);
-}
-
-.cell.highlight {
-  background: rgba(255, 215, 0, 0.35);
+#app label {
+	color: var(--text);
 }
 
 .btn {
@@ -101,6 +73,10 @@ body {
 .btn-end {
   background: var(--red);
   color: #fff;
+}
+
+.btn.hidden {
+  display: none;
 }
 
 .btn-selected {
@@ -187,8 +163,11 @@ body {
 
 .toast-message {
   display: flex;
-  align-items: center;
   gap: 8px;
+}
+
+.toast-text {
+  white-space: pre-line;
 }
 
 .toast-actions {
@@ -203,6 +182,38 @@ body {
 .toast.info .toast-content { border-left: 4px solid #2d6cdf; }
 .toast.success .toast-content { border-left: 4px solid #2ea043; }
 .toast.error .toast-content { border-left: 4px solid #d73a49; }
+
+.board {
+  display: grid;
+  grid-template: repeat(8, var(--cell-size)) / repeat(8, var(--cell-size));
+
+  border-radius: 12px;
+  overflow: hidden;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+
+  font-size: 32px;
+  cursor: pointer;
+
+  transition: filter 0.15s ease;
+}
+
+.cell.light { background: var(--light-cell); }
+.cell.dark { background: var(--dark-cell); }
+
+.cell:hover {
+  filter: brightness(1.1);
+}
+
+.cell.highlight {
+  background: rgba(255, 215, 0, 0.35);
+}
 
 .coord {
   position: absolute;

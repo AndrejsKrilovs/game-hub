@@ -1,36 +1,86 @@
-export class GameSocket {
-  private ws!: WebSocket;
-  private isOpen = false;
+type WSMessage = {
+  type: string
+  payload?: unknown
+}
 
-  constructor(private bus: EventBus) {}
+class GameSocket {
+  private ws?: WebSocket
+  private initialized = false
+  private reconnectTimer?: number
+  private url?: string
 
-  connect() {
-    this.ws = new WebSocket("ws://localhost:8080/ws");
-
-    this.ws.onopen = () => {
-      this.isOpen = true;
-      this.bus.emit("SOCKET_OPEN");
-    };
-
-    this.ws.onmessage = ({ data }) => {
-      this.bus.emit("SOCKET_MESSAGE", JSON.parse(data));
-    };
-
-    this.ws.onclose = () => {
-      this.isOpen = false;
-    };
+  constructor(private bus: EventBus) {
+    this.bus.on("WS_CONNECT", (url) => {
+      if (typeof url === "string") {
+        this.connect(url)
+      }
+    })
+    this.bus.on("WS_DISCONNECT", () => {
+      this.stopReconnect()
+      this.close()
+    })
   }
 
-  send(type: string, payload: any) {
-    if (!this.isOpen) {
-      console.warn("WS not ready");
-      return;
+	close = () => this.ws?.close()
+
+  connect = (url: string) => {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.warn("Пользователь уже подключён")
+      return
     }
 
-    this.ws.send(JSON.stringify({ type, ...payload }));
+    this.url = url
+    this.ws = new WebSocket(url)
+
+    this.ws.onopen = () => {
+      this.bus.emit("WS_OPEN")
+      this.stopReconnect()
+    }
+    this.ws.onclose = () => {
+      this.bus.emit("WS_CLOSE")
+      this.scheduleReconnect()
+    }
+    this.ws.onerror = (e) => {
+      this.bus.emit("WS_ERROR", e)
+    }
+    this.ws.onmessage = ({ data }) => {
+      try {
+        const msg: WSMessage = JSON.parse(data)
+        this.bus.emit("WS_MESSAGE", msg)
+        this.bus.emit(`WS:${msg.type}`, msg.payload)
+      }
+			catch {
+        console.warn("Некорректное сообщение для протокола:", data)
+      }
+    }
+
+    if (!this.initialized) {
+      this.bus.on("WS_SEND", (msg) => {
+        const message = msg as WSMessage
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          console.warn("Веб сокет не доступен")
+          return
+        }
+
+        this.ws.send(JSON.stringify(message))
+      })
+
+      this.initialized = true
+    }
   }
 
-  close() {
-    this.ws?.close();
+  private scheduleReconnect() {
+    if (!this.url) return
+    console.warn("Переподключение через 2 секунды...")
+    this.reconnectTimer = window.setTimeout(() => this.connect(this.url!), 2000)
+  }
+
+  private stopReconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = undefined
+    }
   }
 }
+
+export const gameSocket = (bus: EventBus) => new GameSocket(bus)

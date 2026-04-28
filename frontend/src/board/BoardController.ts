@@ -1,44 +1,39 @@
-import { BoardView } from "./BoardView";
-import { EventBus } from "../EventBus";
+import { boardComponent } from "./BoardComponent"
+import { pieceComponent } from "./PieceComponent"
 
-export class BoardController {
-  private board: BoardView | null = null;
+class BoardController {
+  control = (eventBus: EventBus, root: HTMLElement) => {
+    let board: HTMLElement | null = null
+    let turnColor: "WHITE" | "BLACK" | null = null
 
-  constructor(private bus: EventBus) {}
+    root.addEventListener("click", (e) => {
+      const target = e.target as HTMLElement
+      const cell = target.closest<HTMLElement>(".cell")
+			if (!cell) return
+      eventBus.emit("CELL_CLICK", { cord: cell.dataset.pos })
+    })
 
-  create() {
-    const app = document.getElementById("app")!;
-    app.innerHTML = "";
+    eventBus.on("UPDATE_BOARD", ({ turn, pieces }) => {
+      boardComponent.init(root)
+      board = root.querySelector(".board")
+      if (!board) return
 
-    this.board = new BoardView((coord) => {
-      this.bus.emit("CELL_CLICK", coord);
-    });
-
-    this.board.render(app);
-  }
-
-  destroy() {
-    document.getElementById("app")!.innerHTML = "";
-    this.board = null;
-  }
-
-  render(pieces: any[], getSymbol: any) {
-    if (!this.board) return;
-
-    this.board.clear();
-    this.board.clearHighlights();
-
-    pieces.forEach(p => {
-      const pos = `${p.coordinates.file}${p.coordinates.rank}`;
-      this.board!.setPiece(pos, getSymbol(p.type, p.color));
-    });
-  }
-
-  highlight(moves: string[]) {
-    this.board?.highlightMoves(moves);
-  }
-
-  clearHighlights() {
-    this.board?.clearHighlights();
+      turnColor = turn
+      pieceComponent.init(board, pieces)
+    })
+    eventBus.on("GAME_ENDED", () => {
+      root.innerHTML = ""
+      board = null
+      turnColor = null
+    })
+		eventBus.on("HIGHLIGHT_MOVES", (moves) => {
+      root.querySelectorAll(".cell.highlight").forEach(c => c.classList.remove("highlight"))
+      moves.forEach(pos => root.querySelector(`[data-pos="${pos}"]`)?.classList.add("highlight"))
+    })
+		eventBus.on("CLEAR_HIGHLIGHTS", () =>
+      root.querySelectorAll(".cell").forEach(c => c.classList.remove("highlight"))
+    )
   }
 }
+
+export const boardController = new BoardController()
