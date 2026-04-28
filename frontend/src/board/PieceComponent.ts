@@ -2,15 +2,6 @@ import type { PieceType, PieceName } from "./BoardTypes"
 
 class PieceComponent {
   init = (root: HTMLElement, pieces?: PieceType[]) => {
-		const getSymbol = (type: PieceName, color: "WHITE" | "BLACK"): string => ({
-      Pawn: { WHITE: "♙", BLACK: "♟" },
-      Rook: { WHITE: "♖", BLACK: "♜" },
-      Knight: { WHITE: "♘", BLACK: "♞" },
-      Bishop: { WHITE: "♗", BLACK: "♝" },
-      Queen: { WHITE: "♕", BLACK: "♛" },
-      King: { WHITE: "♔", BLACK: "♚" }
-    }[type]?.[color] ?? "?")
-
     root.querySelectorAll(".cell").forEach(cell => {
       const coord = cell.querySelector(".coord")
       cell.innerHTML = ""
@@ -27,3 +18,13 @@ class PieceComponent {
 }
 
 export const pieceComponent = new PieceComponent()
+
+export const getSymbol =
+	(type: PieceName, color: "WHITE" | "BLACK"): string => ({
+    Pawn: { WHITE: "♙", BLACK: "♟" },
+    Rook: { WHITE: "♖", BLACK: "♜" },
+    Knight: { WHITE: "♘", BLACK: "♞" },
+    Bishop: { WHITE: "♗", BLACK: "♝" },
+    Queen: { WHITE: "♕", BLACK: "♛" },
+    King: { WHITE: "♔", BLACK: "♚" }
+	}[type]?.[color] ?? "?")

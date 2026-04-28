@@ -1,11 +1,12 @@
 import { colorComponent } from "./ColorComponent"
 import { endGameComponent } from "./EndGameComponent"
 import { messageComponent } from "./MessageComponent"
+import { promotionComponent } from "./PromotionComponent"
 
 class ToastController {
   control = (eventBus: EventBus, root: HTMLElement) => {
     let color: string | null = null
-    let currentComponent: "color" | "end" | "message" | null = null
+    let currentComponent: "color" | "end" | "message" | "promotion" | null = null
 
     const clear = () => {
       root.classList.remove("show", "info", "success", "error")
@@ -13,9 +14,9 @@ class ToastController {
       currentComponent = null
     }
 
-    const render = (component: { init: (el: HTMLElement, msg?: string) => void }, message?: string) => {
-      component.init(root, message)
-			message ? root.classList.add("info", "show") : root.classList.add("show")
+    const render = (component: { init: (el: HTMLElement, msg?: string) => void }, data?: any) => {
+      component.init(root, data)
+			data ? root.classList.add("info", "show") : root.classList.add("show")
     }
 
     eventBus.on("SHOW_COLOR_PICKER", () => {
@@ -27,11 +28,15 @@ class ToastController {
       currentComponent = "end"
       render(endGameComponent)
     })
-    eventBus.on("TOAST", (payload) => {
+    eventBus.on("TOAST", ({ message }) => {
       currentComponent = "message"
-      render(messageComponent, payload?.message)
+      render(messageComponent, message)
       setTimeout(clear, 2000)
     })
+		eventBus.on("WS:PROMOTION", ({ availablePieces }) => {
+			currentComponent = "promotion"
+			render(promotionComponent, { color, availablePieces })
+		})
 
     root.addEventListener("click", (e) => {
       const target = e.target as HTMLElement
@@ -57,6 +62,10 @@ class ToastController {
         if (target.matches("[data-no]")) {
           clear()
         }
+      }
+			if (currentComponent === "promotion") {
+				eventBus.emit("WS_SEND", { type: "PROMOTE", payload: { piece: target.dataset.piece } })
+				clear()
       }
     })
   }

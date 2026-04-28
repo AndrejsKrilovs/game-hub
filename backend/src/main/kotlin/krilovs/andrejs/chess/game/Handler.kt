@@ -8,7 +8,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 class Handler : TextWebSocketHandler() {
-  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  private val startFEN = "4K/PPB/8/8/8/8/ppppn2P/k7 b KQkq - 0 1"
   private val mapper = jacksonObjectMapper()
   private val sessions = mutableSetOf<WebSocketSession>()
   private val board = Board().apply { reset() }
@@ -18,7 +18,7 @@ class Handler : TextWebSocketHandler() {
   private val engine = AlphaBetaEngine(board, rules)
 
   private var botColor = Color.BLACK
-  private var lastMove: Move? = null
+  private var pendingMove: Move? = null
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -71,6 +71,7 @@ class Handler : TextWebSocketHandler() {
       )
 
     if (rules.isPromotion(move)) {
+      pendingMove = move
       return sendEvent(
         "PROMOTION",
         mapOf(
@@ -80,31 +81,13 @@ class Handler : TextWebSocketHandler() {
       )
     }
 
-    board.makeMove(move)
-    lastMove = move
-
-    broadcastEvent("MOVE", move.toDto())
-    makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
-    broadcastState()
-  }
-
-  private fun WebSocketSession.handleStartGame(data: JsonNode) {
-    board.reset()
-    lastMove = null
-    botColor = Color.valueOf(data["color"].asText()).opposite()
-    makeBotMoveIfNeeded()?.let { sendEvent("MOVE", it.toDto()) }
-    sendEvent("STATE", buildStatePayload())
-  }
-
-  private fun WebSocketSession.handleEndGame() {
-    board.reset()
-    lastMove = null
-    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
+    applyMove(move)
   }
 
   private fun WebSocketSession.handlePromote(data: JsonNode) {
+    val move = pendingMove ?: return
     val pieceName = data["piece"]?.asText() ?: return
-    val move = lastMove ?: return
+
     val promotionChar = when (pieceName) {
       "Queen" -> 'q'
       "Rook" -> 'r'
@@ -114,10 +97,32 @@ class Handler : TextWebSocketHandler() {
     }.let { if (move.piece.color == Color.WHITE) it.uppercaseChar() else it }
 
     val promotedMove = move.copy(promotion = promotionChar)
-    board.makeMove(promotedMove)
-    lastMove = promotedMove
+    pendingMove = null
+    applyMove(promotedMove)
+  }
 
-    broadcastEvent("MOVE", promotedMove.toDto())
+  private fun WebSocketSession.handleStartGame(data: JsonNode) {
+    board.reset()
+    pendingMove = null
+    botColor = Color.valueOf(data["color"].asText()).opposite()
+    makeBotMoveIfNeeded()?.let { sendEvent("MOVE", it.toDto()) }
+    sendEvent("STATE", buildStatePayload())
+  }
+
+  private fun WebSocketSession.handleEndGame() {
+    board.reset()
+    pendingMove = null
+    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
+  }
+
+  private fun WebSocketSession.sendEvent(type: String, payload: Any?) {
+    val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
+    sendMessage(TextMessage(json))
+  }
+
+  private fun applyMove(move: Move) {
+    board.makeMove(move)
+    broadcastEvent("MOVE", move.toDto())
     makeBotMoveIfNeeded()?.let { broadcastEvent("MOVE", it.toDto()) }
     broadcastState()
   }
@@ -125,21 +130,7 @@ class Handler : TextWebSocketHandler() {
   private fun makeBotMoveIfNeeded(): Move? =
     engine.takeIf { board.currentTurn == botColor }
       ?.findBestMove(4)
-      ?.also {
-        board.makeMove(it)
-        lastMove = it
-      }
-
-  private fun broadcastState() {
-    broadcastEvent("STATE", buildStatePayload() + mapOf(
-      "lastMove" to lastMove?.toDto()
-    ))
-  }
-
-  private fun WebSocketSession.sendEvent(type: String, payload: Any?) {
-    val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
-    sendMessage(TextMessage(json))
-  }
+      ?.also { board.makeMove(it) }
 
   private fun broadcastEvent(type: String, payload: Any?) {
     val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
@@ -170,5 +161,6 @@ class Handler : TextWebSocketHandler() {
   }
 
   private fun Int.toCoord() = "${'a' + (this % 8)}${(this / 8) + 1}"
+  private fun broadcastState() = broadcastEvent("STATE", buildStatePayload())
   private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
 }
