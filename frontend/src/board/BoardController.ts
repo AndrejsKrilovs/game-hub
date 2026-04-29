@@ -28,7 +28,7 @@ class BoardController {
     })
 		eventBus.on("HIGHLIGHT_MOVES", (moves) => {
       root.querySelectorAll(".cell.highlight").forEach(c => c.classList.remove("highlight"))
-      moves.forEach(pos => root.querySelector(`[data-pos="${pos}"]`)?.classList.add("highlight"))
+      moves.forEach(pos => root.querySelector(`[data-pos="${pos.to}"]`)?.classList.add("highlight"))
     })
 		eventBus.on("CLEAR_HIGHLIGHTS", () =>
       root.querySelectorAll(".cell").forEach(c => c.classList.remove("highlight"))

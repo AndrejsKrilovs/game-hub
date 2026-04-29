@@ -2,7 +2,6 @@ package krilovs.andrejs.chess.game
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import krilovs.andrejs.chess.board.GameBoard
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -12,7 +11,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 @Component
 class Handler(
   private val mapper: ObjectMapper,
-  private val gameBoard: GameBoard
+  private val board: Board
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
   private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -31,18 +30,30 @@ class Handler(
     val type = data["type"]?.asText()
 
     when (type) {
-      "START_GAME" -> session.handleStartGame(payload)
+      "START_GAME" -> session.handleStartGame()
+      "GET_MOVES" -> session.handleGetMoves(payload)
       "END_GAME" -> session.handleEndGame()
     }
   }
 
-  private fun WebSocketSession.handleStartGame(payload: JsonNode) {
-    gameBoard.loadFromFEN(startFEN)
-    sendEvent("STATE", buildStatePayload(payload))
+  private fun WebSocketSession.handleStartGame() {
+    board.loadFromFEN(startFEN)
+    sendEvent("STATE", buildStatePayload())
   }
 
   private fun WebSocketSession.handleEndGame() {
     sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
+  }
+
+  private fun WebSocketSession.handleGetMoves(data: JsonNode) {
+    val from = data["from"]?.asText()?.toSquare() ?: return
+    val result = board.generateMovesForSquare(from)
+    val (type, payload) = when (result) {
+      is MoveResult.Success -> "MOVES" to mapOf("moves" to result.moves)
+      is MoveResult.Error -> "ERROR" to mapOf("message" to result.message)
+    }
+
+    sendEvent(type, payload)
   }
 
   private fun WebSocketSession.sendEvent(type: String, payload: Any) {
@@ -50,9 +61,11 @@ class Handler(
     sendMessage(TextMessage(json))
   }
 
-  private fun buildStatePayload(payload: JsonNode) = mapOf(
-    "pieces" to gameBoard.pieces.map { it.toDto() },
-    "turn" to payload["color"],
+  private fun buildStatePayload() = mapOf(
+    "pieces" to board.pieces.map { it.toDto() },
+    "turn" to board.currentColor,
     "state" to "NORMAL"
   )
+
+  private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
 }
