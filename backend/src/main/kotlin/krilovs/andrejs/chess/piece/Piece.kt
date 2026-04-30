@@ -2,7 +2,7 @@ package krilovs.andrejs.chess.piece
 
 import krilovs.andrejs.chess.game.Move
 
-abstract class Piece(val color: Color, val square: Int) {
+abstract class Piece(val color: Color, var square: Int) {
   val type: String get() = this::class.simpleName ?: "UNKNOWN"
 
   fun generateMoves(): Set<Move> =

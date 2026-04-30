@@ -2,5 +2,7 @@ package krilovs.andrejs.chess.piece
 
 enum class Color {
   BLACK,
-  WHITE
+  WHITE;
+
+  fun opposite(): Color = if (this == WHITE) BLACK else WHITE
 }

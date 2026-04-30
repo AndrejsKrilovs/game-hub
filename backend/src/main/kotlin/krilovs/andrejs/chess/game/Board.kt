@@ -1,5 +1,7 @@
 package krilovs.andrejs.chess.game
 
+import krilovs.andrejs.chess.dto.AvailableMovesResult
+import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.piece.Bishop
 import krilovs.andrejs.chess.piece.Color
 import krilovs.andrejs.chess.piece.King
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Component
 @Component
 class Board {
   private val board = Array<Piece?>(64) { null }
+  private var availableMoves = emptySet<Move>()
   operator fun get(square: Int) = board[square]
   operator fun set(square: Int, piece: Piece?) { board[square] = piece }
 
@@ -46,18 +49,31 @@ class Board {
     }
   }
 
-  fun generateMovesForSquare(square: Int): MoveResult {
-    val piece = this[square] ?: return MoveResult.Error("Пустая клетка")
+  fun generateMovesForSquare(square: Int): AvailableMovesResult {
+    val piece = this[square] ?: return AvailableMovesResult.Error("Пустая клетка")
 
     if (piece.color != currentColor) {
-      return MoveResult.Error("Фигура другого цвета")
+      return AvailableMovesResult.Error("Фигура другого цвета")
     }
 
-    val moves = piece.generateMoves().filter { it.piece.color != this[it.to.toSquare()]?.color }.toSet()
+    availableMoves = piece.generateMoves().filter { it.piece.color != this[it.to.toSquare()]?.color }.toSet()
     return when {
-      moves.isEmpty() -> MoveResult.Error("Нет доступных ходов")
-      else -> MoveResult.Success(moves)
+      availableMoves.isEmpty() -> AvailableMovesResult.Error("Нет доступных ходов")
+      else -> AvailableMovesResult.Success(availableMoves)
     }
+  }
+
+  fun makeMove(from: Int, to: Int): MoveResult {
+    val move = availableMoves.firstOrNull { it.to.toSquare() == to } ?: return MoveResult.Error("Некорректный ход")
+
+    this[from] = null
+    val piece = move.piece
+    piece.square = to
+
+    this[to] = piece
+    availableMoves = emptySet()
+    currentColor = currentColor.opposite()
+    return MoveResult.Success(move)
   }
 
   private fun createPiece(type: Char?, color: Color, square: Int): Piece =

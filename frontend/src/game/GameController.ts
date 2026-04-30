@@ -20,7 +20,7 @@ class GameController {
       selectedCell = null
     })
 
-		eventBus.on("WS:MOVE", (payload) => lastMove = payload)
+		eventBus.on("WS:MOVE", ({ move }) => lastMove = move)
 		eventBus.on("WS:GAME_ENDED", (payload) => eventBus.emit("GAME_ENDED", payload))
     eventBus.on("WS:MOVES", ({ moves }) => eventBus.emit("HIGHLIGHT_MOVES", moves))
     eventBus.on("WS:ERROR", ({ message }) => {

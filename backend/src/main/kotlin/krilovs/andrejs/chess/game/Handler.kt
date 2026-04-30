@@ -2,6 +2,8 @@ package krilovs.andrejs.chess.game
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import krilovs.andrejs.chess.dto.AvailableMovesResult
+import krilovs.andrejs.chess.dto.MoveResult
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -30,8 +32,9 @@ class Handler(
     val type = data["type"]?.asText()
 
     when (type) {
-      "START_GAME" -> session.handleStartGame()
       "GET_MOVES" -> session.handleGetMoves(payload)
+      "MAKE_MOVE" -> session.handleMove(payload)
+      "START_GAME" -> session.handleStartGame()
       "END_GAME" -> session.handleEndGame()
     }
   }
@@ -49,11 +52,24 @@ class Handler(
     val from = data["from"]?.asText()?.toSquare() ?: return
     val result = board.generateMovesForSquare(from)
     val (type, payload) = when (result) {
-      is MoveResult.Success -> "MOVES" to mapOf("moves" to result.moves)
+      is AvailableMovesResult.Success -> "MOVES" to mapOf("moves" to result.moves)
+      is AvailableMovesResult.Error -> "ERROR" to mapOf("message" to result.message)
+    }
+
+    sendEvent(type, payload)
+  }
+
+  private fun WebSocketSession.handleMove(data: JsonNode) {
+    val from = data["from"]?.asText()?.toSquare() ?: return
+    val to = data["to"]?.asText()?.toSquare() ?: return
+    val result = board.makeMove(from, to)
+    val (type, payload) = when (result) {
+      is MoveResult.Success -> "MOVE" to mapOf("move" to result.move.toDto())
       is MoveResult.Error -> "ERROR" to mapOf("message" to result.message)
     }
 
     sendEvent(type, payload)
+    sendEvent("STATE", buildStatePayload())
   }
 
   private fun WebSocketSession.sendEvent(type: String, payload: Any) {
@@ -65,6 +81,13 @@ class Handler(
     "pieces" to board.pieces.map { it.toDto() },
     "turn" to board.currentColor,
     "state" to "NORMAL"
+  )
+
+  private fun Move.toDto() = mapOf(
+    "from" to from,
+    "to" to to,
+    "piece" to piece.type,
+    "color" to piece.color
   )
 
   private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
