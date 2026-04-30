@@ -16,7 +16,7 @@ class Handler(
   private val board: Board
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "3k4/8/p5n1/5B2/R7/3P4/P7/3K4 w - - 0 1"
+  private val startFEN = "3k4/8/pp4n1/5B2/R7/3P4/P7/3K4 w - - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
