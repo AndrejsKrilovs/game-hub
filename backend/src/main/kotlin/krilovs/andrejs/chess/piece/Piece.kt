@@ -8,10 +8,7 @@ abstract class Piece(val color: Color, var square: Int) {
   fun toDto() = mapOf(
     "type" to type,
     "color" to color.name,
-    "coordinates" to mapOf(
-      "file" to ('a' + (square % 8)).toString(),
-      "rank" to (square / 8) + 1
-    )
+    "coordinates" to "${'a' + (square % 8)}${(square / 8) + 1}"
   )
 
   protected fun file(sq: Int) = sq % 8

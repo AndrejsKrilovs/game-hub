@@ -9,7 +9,7 @@ class PieceComponent {
     })
 
     pieces.forEach(p => {
-      const coord = `${p.coordinates.file}${p.coordinates.rank}`
+      const coord = `${p.coordinates}`
       const cell = root.querySelector(`[data-pos="${coord}"]`)
       if (!cell) return
       cell.innerHTML = `<span data-piece="${p.color}_${p.type}">${pieceMetadata[p.type]?.[p.color] ?? "?"}</span>`

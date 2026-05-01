@@ -2,6 +2,8 @@ package krilovs.andrejs.chess.game
 
 import krilovs.andrejs.chess.piece.Color
 import krilovs.andrejs.chess.piece.King
+import krilovs.andrejs.chess.piece.Pawn
+import krilovs.andrejs.chess.piece.Piece
 import org.springframework.stereotype.Component
 
 @Component
@@ -51,6 +53,12 @@ class RuleService {
       else -> GameState.NORMAL
     }
   }
+
+  fun isPromotion(piece: Piece, to: Int): Boolean =
+    piece is Pawn && when (piece.color) {
+      Color.WHITE -> to / 8 == 7
+      Color.BLACK -> to / 8 == 0
+    }
 
   private fun findKing(board: BoardService, color: Color): Int =
     board.pieces.first { it is King && it.color == color }.square

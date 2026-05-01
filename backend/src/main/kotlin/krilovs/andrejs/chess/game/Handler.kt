@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
+import krilovs.andrejs.chess.dto.PromotionResult
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -16,7 +17,7 @@ class Handler(
   private val board: BoardService
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  private val startFEN = "3k/2P/p5n/5B/R/3P/P/3K w KQkq - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -33,6 +34,7 @@ class Handler(
 
     when (type) {
       "GET_MOVES" -> session.handleGetMoves(payload)
+      "PROMOTE" -> session.handlePromote(payload)
       "MAKE_MOVE" -> session.handleMove(payload)
       "START_GAME" -> session.handleStartGame()
       "END_GAME" -> session.handleEndGame()
@@ -60,16 +62,40 @@ class Handler(
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
-    val from = BoardUtils.toSquare(data["from"].asText())
     val to = BoardUtils.toSquare(data["to"].asText())
-    val result = board.makeMove(from, to)
-    val (type, payload) = when (result) {
-      is MoveResult.Success -> "MOVE" to mapOf("move" to result.move.toDto())
-      is MoveResult.Error -> "ERROR" to mapOf("message" to result.message)
-    }
+    val from = BoardUtils.toSquare(data["from"].asText())
 
-    sendEvent(type, payload)
-    sendEvent("STATE", buildStatePayload())
+    when (val result = board.makeMove(from, to)) {
+      is MoveResult.Success -> {
+        sendEvent("MOVE", mapOf("move" to result.move.toDto()))
+        sendEvent("STATE", buildStatePayload())
+      }
+      is MoveResult.Error -> {
+        sendEvent("ERROR", mapOf("message" to result.message))
+      }
+      is MoveResult.Promotion -> {
+        sendEvent(
+          "PROMOTION",
+          mapOf("availablePieces" to result.availablePieces, "move" to result.move.toDto())
+        )
+      }
+    }
+  }
+
+  private fun WebSocketSession.handlePromote(data: JsonNode) {
+    val piece = data["piece"].asText()
+    val to = BoardUtils.toSquare(data["to"].asText())
+    val from = BoardUtils.toSquare(data["from"].asText())
+
+    when (val result = board.promote(from, to, piece)) {
+      is PromotionResult.Success -> {
+        sendEvent("MOVE", mapOf("move" to result.move.toDto()))
+        sendEvent("STATE", buildStatePayload())
+      }
+      is PromotionResult.Error -> {
+        sendEvent("ERROR", mapOf("message" to result.message))
+      }
+    }
   }
 
   private fun WebSocketSession.sendEvent(type: String, payload: Any) {

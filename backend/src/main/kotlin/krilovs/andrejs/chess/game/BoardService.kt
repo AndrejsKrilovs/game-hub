@@ -2,6 +2,7 @@ package krilovs.andrejs.chess.game
 
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
+import krilovs.andrejs.chess.dto.PromotionResult
 import krilovs.andrejs.chess.piece.Bishop
 import krilovs.andrejs.chess.piece.Color
 import krilovs.andrejs.chess.piece.King
@@ -74,12 +75,43 @@ class BoardService(private val ruleService: RuleService) {
     if (to !in piece.generateAvailableMoves(this) || !ruleService.isSafeMove(this, from, to)) {
       return MoveResult.Error("Некорректный ход")
     }
+    if (ruleService.isPromotion(piece, to)) {
+      val move = Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
+      return MoveResult.Promotion(
+        availablePieces = setOf("Queen", "Rook", "Bishop", "Knight"),
+        move = move
+      )
+    }
 
     this[from] = null
     this[to] = piece.apply { square = to }
     currentColor = currentColor.opposite()
 
     return MoveResult.Success(Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece))
+  }
+
+  fun promote(from: Int, to: Int, pieceName: String): PromotionResult {
+    val pawn = this[from] as? Pawn ?: return PromotionResult.Error("Не пешка")
+
+    if (!ruleService.isPromotion(pawn, to)) {
+      return PromotionResult.Error("Некорректное превращение")
+    }
+
+    val newPiece = when (pieceName) {
+      "Queen" -> Queen(pawn.color, to)
+      "Rook" -> Rook(pawn.color, to)
+      "Bishop" -> Bishop(pawn.color, to)
+      "Knight" -> Knight(pawn.color, to)
+      else -> return PromotionResult.Error("Неверная фигура")
+    }
+
+    this[from] = null
+    this[to] = newPiece
+    currentColor = currentColor.opposite()
+
+    return PromotionResult.Success(
+      Move(BoardUtils.toCord(from), BoardUtils.toCord(to), pawn, pieceName)
+    )
   }
 
   fun getGameState(): GameState = ruleService.getGameState(this, currentColor)

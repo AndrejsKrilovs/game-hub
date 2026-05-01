@@ -3,14 +3,24 @@ import { endGameComponent } from "./EndGameComponent"
 import { messageComponent } from "./MessageComponent"
 import { promotionComponent } from "./PromotionComponent"
 
+type MoveType = {
+  from: string
+  to: string
+  piece: string
+  color: string
+}
+
 class ToastController {
   control = (eventBus: EventBus, root: HTMLElement) => {
     let color: string | null = null
+    let promotionMove: MoveType | null = null
     let currentComponent: "color" | "end" | "message" | "promotion" | null = null
 
     const clear = () => {
       root.classList.remove("show", "info", "success", "error")
       root.innerHTML = ""
+      color = null
+      promotionMove = null
       currentComponent = null
     }
 
@@ -33,9 +43,10 @@ class ToastController {
       render(messageComponent, message)
       setTimeout(clear, 2000)
     })
-		eventBus.on("WS:PROMOTION", ({ availablePieces }) => {
+		eventBus.on("WS:PROMOTION", ({ move, availablePieces }) => {
+			promotionMove = move
 			currentComponent = "promotion"
-			render(promotionComponent, { color, availablePieces })
+			render(promotionComponent, { color: move.color, availablePieces })
 		})
 
     root.addEventListener("click", (e) => {
@@ -56,7 +67,6 @@ class ToastController {
       if (currentComponent === "end") {
         if (target.matches("[data-yes]")) {
           clear()
-          color = null
           eventBus.emit("END_GAME")
         }
         if (target.matches("[data-no]")) {
@@ -64,7 +74,8 @@ class ToastController {
         }
       }
 			if (currentComponent === "promotion") {
-				eventBus.emit("WS_SEND", { type: "PROMOTE", payload: { piece: target.dataset.piece } })
+				promotionMove.piece = target.dataset.piece
+				eventBus.emit("WS_SEND", { type: "PROMOTE", payload: promotionMove })
 				clear()
       }
     })
