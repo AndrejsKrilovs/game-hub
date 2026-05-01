@@ -82,6 +82,8 @@ class BoardService(private val ruleService: RuleService) {
     return MoveResult.Success(Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece))
   }
 
+  fun getGameState(): GameState = ruleService.getGameState(this, currentColor)
+
   private fun createPiece(type: Char?, color: Color, square: Int): Piece =
     when (type?.lowercaseChar()) {
       'p' -> Pawn(color, square)

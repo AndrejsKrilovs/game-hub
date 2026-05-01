@@ -8,8 +8,15 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
 
   override fun generateAvailableMoves(board: BoardService): Set<Int> =
     buildSet {
-      (square + dir).takeIf { it.isFree(board) }?.let(::add)
-      (square + dir * 2).takeIf { square / 8 == startRank && it.isFree(board) }?.let(::add)
+      val one = square + dir
+
+      one.takeIf { it.isFree(board) }?.let { first ->
+        add(first)
+
+        val two = square + dir * 2
+        two.takeIf { square / 8 == startRank && it.isFree(board) }
+          ?.let(::add)
+      }
 
       diagonalTargets().filter { it.enemyAt(board) }.forEach(::add)
     }
@@ -25,6 +32,8 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
   private fun Int.isFree(board: BoardService) =
     isInsideBoard(this) && board[this] == null
 
-  private fun Int.enemyAt(board: BoardService) =
-    isInsideBoard(this) && board[this]?.color != color
+  private fun Int.enemyAt(board: BoardService): Boolean {
+    val target = board[this] ?: return false
+    return target.color != color
+  }
 }

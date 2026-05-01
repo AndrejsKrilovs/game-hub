@@ -16,7 +16,7 @@ class Handler(
   private val board: BoardService
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "3k4/8/pp4n1/5B2/R7/3P4/P7/3K4 w KQkq - 0 1"
+  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -80,6 +80,6 @@ class Handler(
   private fun buildStatePayload() = mapOf(
     "pieces" to board.pieces.map { it.toDto() },
     "turn" to board.currentColor,
-    "state" to "NORMAL"
+    "state" to board.getGameState()
   )
 }
