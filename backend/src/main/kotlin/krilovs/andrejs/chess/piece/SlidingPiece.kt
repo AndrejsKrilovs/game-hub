@@ -1,10 +1,10 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.Board
+import krilovs.andrejs.chess.game.BoardService
 
 abstract class SlidingPiece(color: Color, square: Int, private val offsets: IntArray) : Piece(color, square) {
 
-  override fun generateAvailableMoves(board: Board): Set<Int> =
+  override fun generateAvailableMoves(board: BoardService): Set<Int> =
     offsets
       .asSequence()
       .flatMap { offset ->

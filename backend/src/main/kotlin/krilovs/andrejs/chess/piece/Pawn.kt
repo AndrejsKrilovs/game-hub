@@ -1,42 +1,30 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.Board
+import krilovs.andrejs.chess.game.BoardService
 
 class Pawn(color: Color, square: Int) : Piece(color, square) {
   private val dir = if (color == Color.WHITE) 8 else -8
   private val startRank = if (color == Color.WHITE) 1 else 6
-  private val offsets = intArrayOf(dir, dir - 1, dir + 1)
 
-  override fun generateAvailableMoves(board: Board): Set<Int> =
-    offsets
-      .asSequence()
-      .map { square + it }
-      .filter { to ->
-        if (!isInsideBoard(to)) return@filter false
+  override fun generateAvailableMoves(board: BoardService): Set<Int> =
+    buildSet {
+      (square + dir).takeIf { it.isFree(board) }?.let(::add)
+      (square + dir * 2).takeIf { square / 8 == startRank && it.isFree(board) }?.let(::add)
 
-        val df = kotlin.math.abs(file(square) - file(to))
-        val target = board[to]
+      diagonalTargets().filter { it.enemyAt(board) }.forEach(::add)
+    }
 
-        when {
-          // движение вперёд
-          to == square + dir -> target == null
+  override fun generateAttacks(board: BoardService): Set<Int> = diagonalTargets().toSet()
 
-          // взятия
-          df == 1 && (to == square + dir - 1 || to == square + dir + 1) -> target != null && target.color != color
-          else -> false
-        }
-      }
-      .toMutableSet()
-      .apply {
-        // двойной ход отдельно
-        val one = square + dir
-        val two = square + dir * 2
+  private fun diagonalTargets() = sequenceOf(square + dir - 1, square + dir + 1)
+    .filter { it.isValidDiagonalFrom(square) }
 
-        if (square / 8 == startRank &&
-          isInsideBoard(one) && board[one] == null &&
-          isInsideBoard(two) && board[two] == null
-        ) {
-          add(two)
-        }
-      }
+  private fun Int.isValidDiagonalFrom(from: Int) =
+    isInsideBoard(this) && kotlin.math.abs(file(from) - file(this)) == 1
+
+  private fun Int.isFree(board: BoardService) =
+    isInsideBoard(this) && board[this] == null
+
+  private fun Int.enemyAt(board: BoardService) =
+    isInsideBoard(this) && board[this]?.color != color
 }

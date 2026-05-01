@@ -13,10 +13,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 @Component
 class Handler(
   private val mapper: ObjectMapper,
-  private val board: Board
+  private val board: BoardService
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "3k4/8/pp4n1/5B2/R7/3P4/P7/3K4 w - - 0 1"
+  private val startFEN = "3k4/8/pp4n1/5B2/R7/3P4/P7/3K4 w KQkq - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -49,10 +49,10 @@ class Handler(
   }
 
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
-    val from = data["from"]?.asText()?.toSquare() ?: return
+    val from = BoardUtils.toSquare(data["from"].asText())
     val result = board.generateMovesForSquare(from)
     val (type, payload) = when (result) {
-      is AvailableMovesResult.Success -> "MOVES" to mapOf("moves" to result.moves)
+      is AvailableMovesResult.Success -> "MOVES" to mapOf("moves" to result.moves.map { it.toDto() })
       is AvailableMovesResult.Error -> "ERROR" to mapOf("message" to result.message)
     }
 
@@ -60,8 +60,8 @@ class Handler(
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
-    val from = data["from"]?.asText()?.toSquare() ?: return
-    val to = data["to"]?.asText()?.toSquare() ?: return
+    val from = BoardUtils.toSquare(data["from"].asText())
+    val to = BoardUtils.toSquare(data["to"].asText())
     val result = board.makeMove(from, to)
     val (type, payload) = when (result) {
       is MoveResult.Success -> "MOVE" to mapOf("move" to result.move.toDto())
@@ -82,13 +82,4 @@ class Handler(
     "turn" to board.currentColor,
     "state" to "NORMAL"
   )
-
-  private fun Move.toDto() = mapOf(
-    "from" to from,
-    "to" to to,
-    "piece" to piece.type,
-    "color" to piece.color
-  )
-
-  private fun String.toSquare(): Int = (this[1].digitToInt() - 1) * 8 + (this[0] - 'a')
 }

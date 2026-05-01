@@ -13,7 +13,7 @@ import krilovs.andrejs.chess.piece.Rook
 import org.springframework.stereotype.Component
 
 @Component
-class Board {
+class BoardService(private val ruleService: RuleService) {
   private val board = Array<Piece?>(64) { null }
   operator fun get(square: Int) = board[square]
   operator fun set(square: Int, piece: Piece?) { board[square] = piece }
@@ -46,6 +46,8 @@ class Board {
         }
       }
     }
+
+    currentColor = if (turnPart == "w") Color.WHITE else Color.BLACK
   }
 
   fun generateMovesForSquare(square: Int): AvailableMovesResult {
@@ -56,7 +58,8 @@ class Board {
     }
 
     val availableMoves = piece.generateAvailableMoves(this)
-      .map { Move(square.toCord(), it.toCord(), piece) }
+      .filter { to -> ruleService.isSafeMove(this, square, to) }
+      .map { Move(BoardUtils.toCord(square), BoardUtils.toCord(it), piece) }
       .toSet()
 
     return when {
@@ -66,21 +69,17 @@ class Board {
   }
 
   fun makeMove(from: Int, to: Int): MoveResult {
-    val piece = this[from]
+    val piece = this[from] ?: return MoveResult.Error("Пустая клетка")
 
-    val move = piece?.generateAvailableMoves(this)
-      ?.firstOrNull { it == to }
-      ?.let {
-        Move(from.toCord(), to.toCord(), piece).also {
-          this[from] = null
-          this[to] = piece.apply { square = to }
-          currentColor = currentColor.opposite()
-        }
-      }
+    if (to !in piece.generateAvailableMoves(this) || !ruleService.isSafeMove(this, from, to)) {
+      return MoveResult.Error("Некорректный ход")
+    }
 
-    return move
-      ?.let { MoveResult.Success(it) }
-      ?: MoveResult.Error("Некорректный ход")
+    this[from] = null
+    this[to] = piece.apply { square = to }
+    currentColor = currentColor.opposite()
+
+    return MoveResult.Success(Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece))
   }
 
   private fun createPiece(type: Char?, color: Color, square: Int): Piece =
@@ -93,6 +92,4 @@ class Board {
       'k' -> King(color, square)
       else -> error("Unknown piece: $type")
     }
-
-  private fun Int.toCord() = "${'a' + (this % 8)}${(this / 8) + 1}"
 }
