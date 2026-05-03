@@ -19,7 +19,8 @@ class BoardService(private val ruleService: RuleService) {
   operator fun get(square: Int) = board[square]
   operator fun set(square: Int, piece: Piece?) { board[square] = piece }
 
-  var currentColor = Color.WHITE
+  lateinit var currentColor: Color
+  lateinit var castlingOption: String
   val pieces: List<Piece> get() = board.filterNotNull()
 
   fun loadFromFEN(fen: String) {
@@ -48,6 +49,7 @@ class BoardService(private val ruleService: RuleService) {
       }
     }
 
+    castlingOption = castlingPart
     currentColor = if (turnPart == "w") Color.WHITE else Color.BLACK
   }
 
@@ -83,9 +85,20 @@ class BoardService(private val ruleService: RuleService) {
       )
     }
 
+    val captured = this[to]
+    val toRemove = ruleService.getCastlingRightsToRemove(piece, to, captured)
+
     this[from] = null
     this[to] = piece.apply { square = to }
     currentColor = currentColor.opposite()
+    castlingOption = castlingOption.filterNot { it in toRemove }.ifEmpty { "-" }
+
+    if (ruleService.isCastling(piece, from, to)) {
+      val castlingType = ruleService.getCastlingType(from, to)
+      applyCastlingRookMove(piece.color, castlingType)
+      val move = Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
+      return MoveResult.Success(move.copy(castlingType = castlingType))
+    }
 
     return MoveResult.Success(Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece))
   }
@@ -126,4 +139,20 @@ class BoardService(private val ruleService: RuleService) {
       'k' -> King(color, square)
       else -> error("Unknown piece: $type")
     }
+
+  private fun applyCastlingRookMove(color: Color, type: CastlingType) {
+    val rank = if (color == Color.WHITE) 0 else 7
+
+    val (rookFromFile, rookToFile) = when (type) {
+      CastlingType.SHORT -> 7 to 5
+      CastlingType.LONG -> 0 to 3
+    }
+
+    val rookFrom = rank * 8 + rookFromFile
+    val rookTo = rank * 8 + rookToFile
+
+    this[rookTo] = this[rookFrom]
+    this[rookFrom] = null
+    this[rookTo]?.square = rookTo
+  }
 }

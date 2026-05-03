@@ -4,6 +4,7 @@ import krilovs.andrejs.chess.piece.Color
 import krilovs.andrejs.chess.piece.King
 import krilovs.andrejs.chess.piece.Pawn
 import krilovs.andrejs.chess.piece.Piece
+import krilovs.andrejs.chess.piece.Rook
 import org.springframework.stereotype.Component
 
 @Component
@@ -12,13 +13,20 @@ class RuleService {
     val piece = board[from] ?: return false
     val captured = board[to]
 
+    if (piece is King && kotlin.math.abs(to - from) == 2) {
+      if (isSquareUnderAttack(board, findKing(board), board.currentColor.opposite())) return false
+
+      // клетка, через которую проходит король при рокировках не должна быть под шахом
+      val step = if (to > from) 1 else -1
+      if (isSquareUnderAttack(board, from + step, board.currentColor.opposite())) return false
+    }
+
     board[from] = null
     board[to] = piece
     val oldSquare = piece.square
     piece.square = to
 
-    val kingSquare =  board.pieces.first { it is King && it.color == piece.color }.square
-    val inCheck = isSquareUnderAttack(board, kingSquare, piece.color.opposite())
+    val inCheck = isSquareUnderAttack(board, findKing(board), piece.color.opposite())
 
     board[from] = piece
     board[to] = captured
@@ -34,7 +42,7 @@ class RuleService {
       .any { piece -> piece.generateAttacks(board).contains(square) }
 
   fun getGameState(board: BoardService, currentTurn: Color): GameState {
-    val kingSquare = findKing(board, currentTurn)
+    val kingSquare = findKing(board)
 
     val hasMoves = board.pieces
       .asSequence()
@@ -60,6 +68,25 @@ class RuleService {
       Color.BLACK -> to / 8 == 0
     }
 
-  private fun findKing(board: BoardService, color: Color): Int =
-    board.pieces.first { it is King && it.color == color }.square
+  fun getCastlingType(from: Int, to: Int): CastlingType =
+    if (to - from == 2) CastlingType.SHORT
+    else CastlingType.LONG
+
+  fun getCastlingRightsToRemove(piece: Piece, to: Int, captured: Piece?): Set<Char> =
+    buildSet {
+      val rookRights = mapOf(
+        0 to 'Q', 7 to 'K',
+        56 to 'q', 63 to 'k'
+      )
+
+      if (piece is King) addAll(if (piece.color == Color.WHITE) "KQ".toList() else "kq".toList())
+      if (piece is Rook) rookRights[piece.square]?.let(::add)
+      if (captured is Rook) rookRights[to]?.let(::add)
+    }
+
+  fun isCastling(piece: Piece, from: Int, to: Int): Boolean =
+    piece is King && kotlin.math.abs(to - from) == 2
+
+  private fun findKing(board: BoardService): Int =
+    board.pieces.first { it is King && it.color == board.currentColor }.square
 }

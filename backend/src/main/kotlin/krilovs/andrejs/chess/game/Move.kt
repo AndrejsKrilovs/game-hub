@@ -10,20 +10,23 @@ data class MoveDto(
   val to: String,
   val piece: String,
   val color: Color,
-  val promotionPiece: String? = null
+  val promotionPiece: String? = null,
+  val castlingType: CastlingType? = null
 )
 
 data class Move(
   val from: String,
   val to: String,
   val piece: Piece,
-  val promotionPiece: String? = null
+  val promotionPiece: String? = null,
+  val castlingType: CastlingType? = null
 ) {
   fun toDto() = MoveDto(
     from = from,
     to = to,
     piece = piece.type,
     color = piece.color,
-    promotionPiece = promotionPiece
+    promotionPiece = promotionPiece,
+    castlingType = castlingType
   )
 }

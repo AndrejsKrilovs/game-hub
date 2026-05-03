@@ -41,8 +41,8 @@ class SidebarController {
 			}
 
 			const pieceColor = payload.color === "WHITE" ? "Белые" : "Чёрные"
-			if (payload.isCastling) {
-        return append(`${pieceColor}: ${ p.castlingType === "SHORT" ? "короткая рокировка" : "длинная рокировка" }`)
+			if (payload.castlingType) {
+        return append(`${pieceColor}: ${ payload.castlingType === "SHORT" ? "короткая рокировка" : "длинная рокировка" }`)
       }
 
 			const pieceName = pieceMetadata[payload.piece]?.name ?? type
