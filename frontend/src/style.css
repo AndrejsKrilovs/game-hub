@@ -193,6 +193,20 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
+.board.finished {
+  position: relative;
+  pointer-events: none;
+  filter: grayscale(0.6) brightness(0.85);
+}
+
+.board.finished::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
 .cell {
   position: relative;
   display: grid;

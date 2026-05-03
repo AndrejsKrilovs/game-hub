@@ -32,6 +32,7 @@ class SidebarController {
       startBtn.classList.remove("hidden")
       endBtn.classList.add("hidden")
       eventBus.emit("TOAST", payload)
+      eventBus.emit("ADD_HISTORY", { text: payload.message })
     })
 		eventBus.on("ADD_HISTORY", (payload) => {
 			if (payload.text) {

@@ -33,16 +33,20 @@ class GameController {
           eventBus.emit("ADD_HISTORY", { ...lastMove, state })
           lastMove = null
       }
+
+			const board = document.querySelector(".board")
 			switch (state) {
 				case "CHECK":
 					eventBus.emit("TOAST", { message: "ШАХ!" })
 					break
 				case "DRAW":
 				case "STALEMATE":
+					board.classList.add("finished")
 					eventBus.emit("TOAST", { message: "Партия завершилась в ничью!" })
 					eventBus.emit("ADD_HISTORY", { text: "Партия завершилась в ничью!" })
 					break
 				case "CHECKMATE":
+					board.classList.add("finished")
 					eventBus.emit("TOAST", { message: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
 					eventBus.emit("ADD_HISTORY", { text: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
 					break
