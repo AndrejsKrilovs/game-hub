@@ -2,6 +2,8 @@ package krilovs.andrejs.chess.application
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
+import krilovs.andrejs.chess.application.bot.ChessBot
+import krilovs.andrejs.chess.domain.model.Color
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
@@ -15,8 +17,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 @Component
 class WebsocketHandler(
   private val mapper: ObjectMapper,
-  private val game: GameService
+  private val game: GameService,
+  private val bot: ChessBot
 ) : TextWebSocketHandler() {
+  private var botColor = Color.BLACK
   private val sessions = mutableSetOf<WebSocketSession>()
   private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
@@ -30,25 +34,28 @@ class WebsocketHandler(
 
   override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
     val data = mapper.readTree(message.payload)
-    val payload = data["payload"] ?: return
+    val payload = data["payload"]
     val type = data["type"]?.asText()
 
     when (type) {
       "GET_MOVES" -> session.handleGetMoves(payload)
       "PROMOTE" -> session.handlePromote(payload)
       "MAKE_MOVE" -> session.handleMove(payload)
-      "START_GAME" -> session.handleStartGame()
+      "START_GAME" -> session.handleStartGame(payload)
       "END_GAME" -> session.handleEndGame()
     }
   }
 
-  private fun WebSocketSession.handleStartGame() {
+  private fun WebSocketSession.handleStartGame(data: JsonNode) {
     game.loadFromFEN(startFEN)
+    botColor = Color.valueOf(data["color"].asText()).opposite()
+
     sendEvent("STATE", buildStatePayload())
+    handleBotMove()
   }
 
   private fun WebSocketSession.handleEndGame() {
-    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно"))
+    sendEvent("GAME_ENDED", mapOf("message" to "Партия завершена досрочно!"))
   }
 
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
@@ -69,6 +76,7 @@ class WebsocketHandler(
       is MoveResult.Success -> {
         sendEvent("MOVE", mapOf("move" to result.move.toDto()))
         sendEvent("STATE", buildStatePayload())
+        handleBotMove()
       }
       is MoveResult.Error -> {
         sendEvent("ERROR", mapOf("message" to result.message))
@@ -101,6 +109,15 @@ class WebsocketHandler(
   private fun WebSocketSession.sendEvent(type: String, payload: Any) {
     val json = mapper.writeValueAsString(mapOf("type" to type, "payload" to payload))
     sendMessage(TextMessage(json))
+  }
+
+  private fun WebSocketSession.handleBotMove() {
+    val move = bot.takeIf { game.currentTurn == botColor }
+      ?.findBestMove()
+      ?.also { game.makeMove(BoardUtils.toSquare(it.from), BoardUtils.toSquare(it.to)) }
+
+    sendEvent("MOVE", mapOf("move" to (move?.toDto() ?: return)))
+    sendEvent("STATE", buildStatePayload())
   }
 
   private fun buildStatePayload() = mapOf(
