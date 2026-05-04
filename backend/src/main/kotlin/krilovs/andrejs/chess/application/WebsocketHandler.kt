@@ -1,10 +1,11 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.application
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
+import krilovs.andrejs.chess.utils.BoardUtils
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -12,9 +13,9 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 @Component
-class Handler(
+class WebsocketHandler(
   private val mapper: ObjectMapper,
-  private val board: BoardService
+  private val game: GameService
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
   private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -29,7 +30,7 @@ class Handler(
 
   override fun handleTextMessage(session: WebSocketSession, message: TextMessage) {
     val data = mapper.readTree(message.payload)
-    val payload = data["payload"]
+    val payload = data["payload"] ?: return
     val type = data["type"]?.asText()
 
     when (type) {
@@ -42,7 +43,7 @@ class Handler(
   }
 
   private fun WebSocketSession.handleStartGame() {
-    board.loadFromFEN(startFEN)
+    game.loadFromFEN(startFEN)
     sendEvent("STATE", buildStatePayload())
   }
 
@@ -51,8 +52,7 @@ class Handler(
   }
 
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
-    val from = BoardUtils.toSquare(data["from"].asText())
-    val result = board.generateMovesForSquare(from)
+    val result = game.generateMovesForSquare(data.square("from"))
     val (type, payload) = when (result) {
       is AvailableMovesResult.Success -> "MOVES" to mapOf("moves" to result.moves.map { it.toDto() })
       is AvailableMovesResult.Error -> "ERROR" to mapOf("message" to result.message)
@@ -62,10 +62,10 @@ class Handler(
   }
 
   private fun WebSocketSession.handleMove(data: JsonNode) {
-    val to = BoardUtils.toSquare(data["to"].asText())
-    val from = BoardUtils.toSquare(data["from"].asText())
+    val from = data.square("from")
+    val to = data.square("to")
 
-    when (val result = board.makeMove(from, to)) {
+    when (val result = game.makeMove(from, to)) {
       is MoveResult.Success -> {
         sendEvent("MOVE", mapOf("move" to result.move.toDto()))
         sendEvent("STATE", buildStatePayload())
@@ -83,11 +83,11 @@ class Handler(
   }
 
   private fun WebSocketSession.handlePromote(data: JsonNode) {
+    val to = data.square("to")
     val piece = data["piece"].asText()
-    val to = BoardUtils.toSquare(data["to"].asText())
-    val from = BoardUtils.toSquare(data["from"].asText())
+    val from = data.square("from")
 
-    when (val result = board.promote(from, to, piece)) {
+    when (val result = game.promote(from, to, piece)) {
       is PromotionResult.Success -> {
         sendEvent("MOVE", mapOf("move" to result.move.toDto()))
         sendEvent("STATE", buildStatePayload())
@@ -104,8 +104,11 @@ class Handler(
   }
 
   private fun buildStatePayload() = mapOf(
-    "pieces" to board.pieces.map { it.toDto() },
-    "turn" to board.currentColor,
-    "state" to board.getGameState()
+    "pieces" to game.getPieces().map { it.toDto() },
+    "turn" to game.currentTurn,
+    "state" to game.getGameState()
   )
+
+  private fun JsonNode.square(field: String): Int =
+    BoardUtils.toSquare(this[field].asText())
 }

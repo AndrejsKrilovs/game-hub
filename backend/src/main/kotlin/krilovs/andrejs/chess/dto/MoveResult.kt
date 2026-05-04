@@ -1,6 +1,6 @@
 package krilovs.andrejs.chess.dto
 
-import krilovs.andrejs.chess.game.Move
+import krilovs.andrejs.chess.domain.model.Move
 
 sealed interface MoveResult {
   data class Success(val move: Move) : MoveResult

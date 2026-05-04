@@ -60,8 +60,8 @@ class ToastController {
         }
         if (target.matches("[data-start]")) {
           if (!color) return
-          clear()
           eventBus.emit("START_GAME", { color })
+          clear()
         }
       }
       if (currentComponent === "end") {
