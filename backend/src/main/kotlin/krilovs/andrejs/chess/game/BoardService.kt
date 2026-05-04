@@ -3,28 +3,25 @@ package krilovs.andrejs.chess.game
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
-import krilovs.andrejs.chess.piece.Bishop
 import krilovs.andrejs.chess.piece.Color
-import krilovs.andrejs.chess.piece.King
-import krilovs.andrejs.chess.piece.Knight
 import krilovs.andrejs.chess.piece.Pawn
 import krilovs.andrejs.chess.piece.Piece
-import krilovs.andrejs.chess.piece.Queen
-import krilovs.andrejs.chess.piece.Rook
 import org.springframework.stereotype.Component
 
 @Component
-class BoardService(private val ruleService: RuleService) {
-  private val board = Array<Piece?>(64) { null }
-  operator fun get(square: Int) = board[square]
-  operator fun set(square: Int, piece: Piece?) { board[square] = piece }
+class BoardService(
+  private val ruleService: RuleService,
+  private val pieceFactory: PieceFactory
+) {
+  private val board: Board = Board()
 
-  lateinit var currentColor: Color
+  lateinit var currentTurn: Color
   lateinit var castlingOption: String
-  val pieces: List<Piece> get() = board.filterNotNull()
+
+  fun getPieces(): Set<Piece> = board.getPieces()
 
   fun loadFromFEN(fen: String) {
-    board.fill(null)
+    board.clear()
 
     val (boardPart, turnPart, castlingPart) = fen.split(" ").let {
       Triple(it[0], it[1], it.getOrElse(2) { "-" })
@@ -43,25 +40,25 @@ class BoardService(private val ruleService: RuleService) {
         else -> {
           val color = if (char.isUpperCase()) Color.WHITE else Color.BLACK
           val square = rank * 8 + file
-          this[square] = createPiece(char.lowercaseChar(), color, square)
+          board[square] = pieceFactory.create(char.lowercaseChar(), color, square)
           file++
         }
       }
     }
 
     castlingOption = castlingPart
-    currentColor = if (turnPart == "w") Color.WHITE else Color.BLACK
+    currentTurn = if (turnPart == "w") Color.WHITE else Color.BLACK
   }
 
   fun generateMovesForSquare(square: Int): AvailableMovesResult {
-    val piece = this[square] ?: return AvailableMovesResult.Error("Пустая клетка")
+    val piece = board[square] ?: return AvailableMovesResult.Error("Пустая клетка")
 
-    if (piece.color != currentColor) {
+    if (piece.color != currentTurn) {
       return AvailableMovesResult.Error("Фигура другого цвета")
     }
 
-    val availableMoves = piece.generateAvailableMoves(this)
-      .filter { to -> ruleService.isSafeMove(this, square, to) }
+    val availableMoves = piece.generateAvailableMoves(board)
+      .filter { to -> ruleService.isSafeMove(board, square, to) }
       .map { Move(BoardUtils.toCord(square), BoardUtils.toCord(it), piece) }
       .toSet()
 
@@ -72,73 +69,54 @@ class BoardService(private val ruleService: RuleService) {
   }
 
   fun makeMove(from: Int, to: Int): MoveResult {
-    val piece = this[from] ?: return MoveResult.Error("Пустая клетка")
+    val piece = board[from] ?: return MoveResult.Error("Пустая клетка")
+    val baseMove = Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
 
-    if (to !in piece.generateAvailableMoves(this) || !ruleService.isSafeMove(this, from, to)) {
+    if (!isValidMove(piece, from, to)) {
       return MoveResult.Error("Некорректный ход")
     }
+
     if (ruleService.isPromotion(piece, to)) {
-      val move = Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
       return MoveResult.Promotion(
         availablePieces = setOf("Queen", "Rook", "Bishop", "Knight"),
-        move = move
+        move = baseMove
       )
     }
 
-    val captured = this[to]
+    val captured = board[to]
     val toRemove = ruleService.getCastlingRightsToRemove(piece, to, captured)
 
-    this[from] = null
-    this[to] = piece.apply { square = to }
-    currentColor = currentColor.opposite()
+    applyMove(from, to, piece)
+
+    val castlingType = handleCastling(piece, from, to)
+
+    currentTurn = currentTurn.opposite()
     castlingOption = castlingOption.filterNot { it in toRemove }.ifEmpty { "-" }
 
-    if (ruleService.isCastling(piece, from, to)) {
-      val castlingType = ruleService.getCastlingType(from, to)
-      applyCastlingRookMove(piece.color, castlingType)
-      val move = Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
-      return MoveResult.Success(move.copy(castlingType = castlingType))
-    }
-
-    return MoveResult.Success(Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece))
+    return MoveResult.Success(
+      castlingType?.let { baseMove.copy(castlingType = it) } ?: baseMove
+    )
   }
 
   fun promote(from: Int, to: Int, pieceName: String): PromotionResult {
-    val pawn = this[from] as? Pawn ?: return PromotionResult.Error("Не пешка")
+    val pawn = board[from] as? Pawn ?: return PromotionResult.Error("Не пешка")
 
     if (!ruleService.isPromotion(pawn, to)) {
       return PromotionResult.Error("Некорректное превращение")
     }
 
-    val newPiece = when (pieceName) {
-      "Queen" -> Queen(pawn.color, to)
-      "Rook" -> Rook(pawn.color, to)
-      "Bishop" -> Bishop(pawn.color, to)
-      "Knight" -> Knight(pawn.color, to)
-      else -> return PromotionResult.Error("Неверная фигура")
-    }
+    val newPiece = pieceFactory.create(pieceName.first().lowercaseChar(), pawn.color, to)
 
-    this[from] = null
-    this[to] = newPiece
-    currentColor = currentColor.opposite()
+    board[from] = null
+    board[to] = newPiece
+    currentTurn = currentTurn.opposite()
 
     return PromotionResult.Success(
       Move(BoardUtils.toCord(from), BoardUtils.toCord(to), pawn, pieceName)
     )
   }
 
-  fun getGameState(): GameState = ruleService.getGameState(this, currentColor)
-
-  private fun createPiece(type: Char?, color: Color, square: Int): Piece =
-    when (type?.lowercaseChar()) {
-      'p' -> Pawn(color, square)
-      'r' -> Rook(color, square)
-      'n' -> Knight(color, square)
-      'b' -> Bishop(color, square)
-      'q' -> Queen(color, square)
-      'k' -> King(color, square)
-      else -> error("Unknown piece: $type")
-    }
+  fun getGameState(): GameState = ruleService.getGameState(board, currentTurn)
 
   private fun applyCastlingRookMove(color: Color, type: CastlingType) {
     val rank = if (color == Color.WHITE) 0 else 7
@@ -151,8 +129,26 @@ class BoardService(private val ruleService: RuleService) {
     val rookFrom = rank * 8 + rookFromFile
     val rookTo = rank * 8 + rookToFile
 
-    this[rookTo] = this[rookFrom]
-    this[rookFrom] = null
-    this[rookTo]?.square = rookTo
+    board[rookTo] = board[rookFrom]
+    board[rookFrom] = null
+    board[rookTo]?.square = rookTo
+  }
+
+  private fun isValidMove(piece: Piece, from: Int, to: Int): Boolean {
+    return to in piece.generateAvailableMoves(board) &&
+      ruleService.isSafeMove(board, from, to)
+  }
+
+  private fun applyMove(from: Int, to: Int, piece: Piece) {
+    board[from] = null
+    board[to] = piece.apply { square = to }
+  }
+
+  private fun handleCastling(piece: Piece, from: Int, to: Int): CastlingType? {
+    if (!ruleService.isCastling(piece, from, to)) return null
+
+    val type = ruleService.getCastlingType(from, to)
+    applyCastlingRookMove(piece.color, type)
+    return type
   }
 }

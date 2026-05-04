@@ -1,11 +1,12 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.BoardService
+import krilovs.andrejs.chess.game.Board
 
 class Knight(color: Color, square: Int) : Piece(color, square) {
   private val offsets = intArrayOf(17, 15, 10, 6, -6, -10, -15, -17)
 
-  override fun generateAvailableMoves(board: BoardService): Set<Int> =
+  override fun copy(): Piece = Knight(color, square)
+  override fun generateAvailableMoves(board: Board): Set<Int> =
     offsets
       .asSequence()
       .map { square + it }

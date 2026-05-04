@@ -1,35 +1,24 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.BoardService
+import krilovs.andrejs.chess.game.Board
 
 class King(color: Color, square: Int) : Piece(color, square) {
   private val offsets = intArrayOf(-9, -8, -7, -1, 1, 7, 8, 9)
 
-  override fun generateAvailableMoves(board: BoardService): Set<Int> =
-    stepTargets().toMutableSet()
-      .apply { addAll(generateCastleMoves(board)) }
+  override fun generateAvailableMoves(board: Board): Set<Int> =
+    stepTargets()
       .filter { board[it] == null || board[it]?.color != color }
       .toSet()
 
-  override fun generateAttacks(board: BoardService): Set<Int> = stepTargets().toSet()
+  override fun generateAttacks(board: Board): Set<Int> =
+    stepTargets().toSet()
+
+  override fun copy(): Piece = King(color, square)
 
   private fun stepTargets(): Sequence<Int> =
     offsets.asSequence()
       .map { square + it }
       .filter { it.isValidStepFrom(square) }
-
-  private fun generateCastleMoves(board: BoardService): Set<Int> = buildSet {
-    val isWhite = color == Color.WHITE
-
-    board.castlingOption.forEach { c ->
-      if (c.isUpperCase() != isWhite) return@forEach
-
-      when (c.uppercaseChar()) {
-        'K' -> add(if (isWhite) 6 else 62)
-        'Q' -> add(if (isWhite) 2 else 58)
-      }
-    }
-  }
 
   private fun Int.isValidStepFrom(from: Int) =
     isInsideBoard(this) &&

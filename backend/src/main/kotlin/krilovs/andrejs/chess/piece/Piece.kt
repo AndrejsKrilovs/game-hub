@@ -1,6 +1,6 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.BoardService
+import krilovs.andrejs.chess.game.Board
 
 abstract class Piece(val color: Color, var square: Int) {
   val type: String get() = this::class.simpleName ?: "UNKNOWN"
@@ -15,6 +15,7 @@ abstract class Piece(val color: Color, var square: Int) {
   protected fun rank(sq: Int) = sq / 8
   protected fun isInsideBoard(sq: Int) = sq in 0..63
 
-  abstract fun generateAvailableMoves(board: BoardService): Set<Int>
-  open fun generateAttacks(board: BoardService): Set<Int> = generateAvailableMoves(board)
+  abstract fun copy(): Piece
+  abstract fun generateAvailableMoves(board: Board): Set<Int>
+  open fun generateAttacks(board: Board): Set<Int> = generateAvailableMoves(board)
 }

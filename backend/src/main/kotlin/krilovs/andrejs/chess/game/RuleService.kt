@@ -11,16 +11,16 @@ import org.springframework.stereotype.Component
 
 @Component
 class RuleService {
-  fun isSafeMove(board: BoardService, from: Int, to: Int): Boolean {
+  fun isSafeMove(board: Board, from: Int, to: Int): Boolean {
     val piece = board[from] ?: return false
     val captured = board[to]
 
     if (piece is King && kotlin.math.abs(to - from) == 2) {
-      if (isSquareUnderAttack(board, findKing(board), board.currentColor.opposite())) return false
+      if (isSquareUnderAttack(board, findKing(board, piece.color), piece.color.opposite())) return false
 
       // клетка, через которую проходит король при рокировках не должна быть под шахом
       val step = if (to > from) 1 else -1
-      if (isSquareUnderAttack(board, from + step, board.currentColor.opposite())) return false
+      if (isSquareUnderAttack(board, from + step, piece.color.opposite())) return false
     }
 
     board[from] = null
@@ -28,7 +28,7 @@ class RuleService {
     val oldSquare = piece.square
     piece.square = to
 
-    val inCheck = isSquareUnderAttack(board, findKing(board), piece.color.opposite())
+    val inCheck = isSquareUnderAttack(board, findKing(board, piece.color), piece.color.opposite())
 
     board[from] = piece
     board[to] = captured
@@ -37,16 +37,16 @@ class RuleService {
     return !inCheck
   }
 
-  fun isSquareUnderAttack(board: BoardService, square: Int, byColor: Color): Boolean =
-    board.pieces
+  fun isSquareUnderAttack(board: Board, square: Int, byColor: Color): Boolean =
+    board.getPieces()
       .asSequence()
       .filter { it.color == byColor }
       .any { piece -> piece.generateAttacks(board).contains(square) }
 
-  fun getGameState(board: BoardService, currentTurn: Color): GameState {
-    val kingSquare = findKing(board)
+  fun getGameState(board: Board, currentTurn: Color): GameState {
+    val kingSquare = findKing(board, currentTurn)
 
-    val hasMoves = board.pieces
+    val hasMoves = board.getPieces()
       .asSequence()
       .filter { it.color == currentTurn }
       .flatMap { piece ->
@@ -90,9 +90,8 @@ class RuleService {
   fun isCastling(piece: Piece, from: Int, to: Int): Boolean =
     piece is King && kotlin.math.abs(to - from) == 2
 
-  private fun isInsufficientMaterial(board: BoardService): Boolean {
-    val pieces = board.pieces
-    val nonKings = pieces.filterNot { it is King }
+  private fun isInsufficientMaterial(board: Board): Boolean {
+    val nonKings = board.getPieces().filterNot { it is King }
 
     // только короли
     if (nonKings.isEmpty()) return true
@@ -111,6 +110,6 @@ class RuleService {
     return false
   }
 
-  private fun findKing(board: BoardService): Int =
-    board.pieces.first { it is King && it.color == board.currentColor }.square
+  private fun findKing(board: Board, color: Color): Int =
+    board.getPieces().first { it is King && it.color == color }.square
 }

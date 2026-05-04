@@ -1,12 +1,13 @@
 package krilovs.andrejs.chess.piece
 
-import krilovs.andrejs.chess.game.BoardService
+import krilovs.andrejs.chess.game.Board
 
 class Pawn(color: Color, square: Int) : Piece(color, square) {
   private val dir = if (color == Color.WHITE) 8 else -8
   private val startRank = if (color == Color.WHITE) 1 else 6
 
-  override fun generateAvailableMoves(board: BoardService): Set<Int> =
+  override fun copy(): Piece = Pawn(color, square)
+  override fun generateAvailableMoves(board: Board): Set<Int> =
     buildSet {
       val one = square + dir
 
@@ -21,7 +22,7 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
       diagonalTargets().filter { it.enemyAt(board) }.forEach(::add)
     }
 
-  override fun generateAttacks(board: BoardService): Set<Int> = diagonalTargets().toSet()
+  override fun generateAttacks(board: Board): Set<Int> = diagonalTargets().toSet()
 
   private fun diagonalTargets() = sequenceOf(square + dir - 1, square + dir + 1)
     .filter { it.isValidDiagonalFrom(square) }
@@ -29,10 +30,10 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
   private fun Int.isValidDiagonalFrom(from: Int) =
     isInsideBoard(this) && kotlin.math.abs(file(from) - file(this)) == 1
 
-  private fun Int.isFree(board: BoardService) =
+  private fun Int.isFree(board: Board) =
     isInsideBoard(this) && board[this] == null
 
-  private fun Int.enemyAt(board: BoardService): Boolean {
+  private fun Int.enemyAt(board: Board): Boolean {
     val target = board[this] ?: return false
     return target.color != color
   }
