@@ -1,8 +1,7 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.domain.model
 
 import com.fasterxml.jackson.annotation.JsonInclude
-import krilovs.andrejs.chess.piece.Color
-import krilovs.andrejs.chess.piece.Piece
+import krilovs.andrejs.chess.domain.piece.Piece
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class MoveDto(

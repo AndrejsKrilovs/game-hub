@@ -1,10 +1,11 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.application
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
+import krilovs.andrejs.chess.utils.BoardUtils
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -14,7 +15,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 @Component
 class Handler(
   private val mapper: ObjectMapper,
-  private val game: BoardService
+  private val game: GameService
 ) : TextWebSocketHandler() {
   private val sessions = mutableSetOf<WebSocketSession>()
   private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

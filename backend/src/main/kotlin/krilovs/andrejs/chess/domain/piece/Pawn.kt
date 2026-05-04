@@ -1,6 +1,7 @@
-package krilovs.andrejs.chess.piece
+package krilovs.andrejs.chess.domain.piece
 
-import krilovs.andrejs.chess.game.Board
+import krilovs.andrejs.chess.domain.model.Board
+import krilovs.andrejs.chess.domain.model.Color
 
 class Pawn(color: Color, square: Int) : Piece(color, square) {
   private val dir = if (color == Color.WHITE) 8 else -8

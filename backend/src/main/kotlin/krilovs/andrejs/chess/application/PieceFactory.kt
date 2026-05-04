@@ -1,13 +1,13 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.application
 
-import krilovs.andrejs.chess.piece.Bishop
-import krilovs.andrejs.chess.piece.Color
-import krilovs.andrejs.chess.piece.King
-import krilovs.andrejs.chess.piece.Knight
-import krilovs.andrejs.chess.piece.Pawn
-import krilovs.andrejs.chess.piece.Piece
-import krilovs.andrejs.chess.piece.Queen
-import krilovs.andrejs.chess.piece.Rook
+import krilovs.andrejs.chess.domain.model.Color
+import krilovs.andrejs.chess.domain.piece.Bishop
+import krilovs.andrejs.chess.domain.piece.King
+import krilovs.andrejs.chess.domain.piece.Knight
+import krilovs.andrejs.chess.domain.piece.Pawn
+import krilovs.andrejs.chess.domain.piece.Piece
+import krilovs.andrejs.chess.domain.piece.Queen
+import krilovs.andrejs.chess.domain.piece.Rook
 import org.springframework.stereotype.Component
 
 @Component

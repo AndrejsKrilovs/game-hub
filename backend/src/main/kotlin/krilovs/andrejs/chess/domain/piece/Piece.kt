@@ -1,6 +1,7 @@
-package krilovs.andrejs.chess.piece
+package krilovs.andrejs.chess.domain.piece
 
-import krilovs.andrejs.chess.game.Board
+import krilovs.andrejs.chess.domain.model.Board
+import krilovs.andrejs.chess.domain.model.Color
 
 abstract class Piece(val color: Color, var square: Int) {
   val type: String get() = this::class.simpleName ?: "UNKNOWN"

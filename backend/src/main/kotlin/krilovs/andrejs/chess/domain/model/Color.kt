@@ -1,4 +1,4 @@
-package krilovs.andrejs.chess.piece
+package krilovs.andrejs.chess.domain.model
 
 enum class Color {
   BLACK,

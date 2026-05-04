@@ -1,6 +1,6 @@
 package krilovs.andrejs.chess
 
-import krilovs.andrejs.chess.game.Handler
+import krilovs.andrejs.chess.application.Handler
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 import org.springframework.web.socket.config.annotation.EnableWebSocket

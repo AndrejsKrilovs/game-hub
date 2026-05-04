@@ -1,6 +1,7 @@
-package krilovs.andrejs.chess.piece
+package krilovs.andrejs.chess.domain.piece
 
-import krilovs.andrejs.chess.game.Board
+import krilovs.andrejs.chess.domain.model.Board
+import krilovs.andrejs.chess.domain.model.Color
 
 class King(color: Color, square: Int) : Piece(color, square) {
   private val offsets = intArrayOf(-9, -8, -7, -1, 1, 7, 8, 9)

@@ -1,6 +1,6 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.domain.model
 
-import krilovs.andrejs.chess.piece.Piece
+import krilovs.andrejs.chess.domain.piece.Piece
 
 class Board {
   private val squares = Array<Piece?>(64) { null }

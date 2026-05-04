@@ -1,15 +1,17 @@
-package krilovs.andrejs.chess.game
+package krilovs.andrejs.chess.application
 
+import krilovs.andrejs.chess.domain.model.*
+import krilovs.andrejs.chess.domain.piece.Pawn
+import krilovs.andrejs.chess.domain.piece.Piece
+import krilovs.andrejs.chess.domain.service.RuleService
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
-import krilovs.andrejs.chess.piece.Color
-import krilovs.andrejs.chess.piece.Pawn
-import krilovs.andrejs.chess.piece.Piece
+import krilovs.andrejs.chess.utils.BoardUtils
 import org.springframework.stereotype.Component
 
 @Component
-class BoardService(
+class GameService(
   private val ruleService: RuleService,
   private val pieceFactory: PieceFactory
 ) {
