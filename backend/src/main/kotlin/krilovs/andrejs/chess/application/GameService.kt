@@ -1,9 +1,10 @@
 package krilovs.andrejs.chess.application
 
 import krilovs.andrejs.chess.domain.model.*
+import krilovs.andrejs.chess.domain.piece.King
 import krilovs.andrejs.chess.domain.piece.Pawn
 import krilovs.andrejs.chess.domain.piece.Piece
-import krilovs.andrejs.chess.domain.service.RuleService
+import krilovs.andrejs.chess.domain.service.RuleFacade
 import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class GameService(
-  private val ruleService: RuleService,
+  private val rules: RuleFacade,
   private val pieceFactory: PieceFactory
 ) {
   private val board: Board = Board()
@@ -59,8 +60,13 @@ class GameService(
       return AvailableMovesResult.Error("Фигура другого цвета")
     }
 
-    val availableMoves = piece.generateAvailableMoves(board)
-      .filter { to -> ruleService.isSafeMove(board, square, to) }
+    val moves = piece.generateAvailableMoves(board).toMutableSet()
+    if (piece is King) {
+      moves.addAll(rules.castling.getCastlingMoves(board, piece, castlingOption))
+    }
+
+    val availableMoves = moves
+      .filter { to -> rules.moveSafety.isSafeMove(board, square, to) }
       .map { Move(BoardUtils.toCord(square), BoardUtils.toCord(it), piece) }
       .toSet()
 
@@ -78,7 +84,7 @@ class GameService(
       return MoveResult.Error("Некорректный ход")
     }
 
-    if (ruleService.isPromotion(piece, to)) {
+    if (rules.promotion.isPromotion(piece, to)) {
       return MoveResult.Promotion(
         availablePieces = setOf("Queen", "Rook", "Bishop", "Knight"),
         move = baseMove
@@ -86,7 +92,7 @@ class GameService(
     }
 
     val captured = board[to]
-    val toRemove = ruleService.getCastlingRightsToRemove(piece, to, captured)
+    val toRemove = rules.castling.getCastlingRightsToRemove(piece, to, captured)
 
     applyMove(from, to, piece)
 
@@ -103,7 +109,7 @@ class GameService(
   fun promote(from: Int, to: Int, pieceName: String): PromotionResult {
     val pawn = board[from] as? Pawn ?: return PromotionResult.Error("Не пешка")
 
-    if (!ruleService.isPromotion(pawn, to)) {
+    if (!rules.promotion.isPromotion(pawn, to)) {
       return PromotionResult.Error("Некорректное превращение")
     }
 
@@ -118,7 +124,7 @@ class GameService(
     )
   }
 
-  fun getGameState(): GameState = ruleService.getGameState(board, currentTurn)
+  fun getGameState(): GameState = rules.gameState.getGameState(board, currentTurn)
 
   private fun applyCastlingRookMove(color: Color, type: CastlingType) {
     val rank = if (color == Color.WHITE) 0 else 7
@@ -137,8 +143,12 @@ class GameService(
   }
 
   private fun isValidMove(piece: Piece, from: Int, to: Int): Boolean {
-    return to in piece.generateAvailableMoves(board) &&
-      ruleService.isSafeMove(board, from, to)
+    val moves = piece.generateAvailableMoves(board).toMutableSet()
+    if (piece is King) {
+      moves.addAll(rules.castling.getCastlingMoves(board, piece, castlingOption))
+    }
+
+    return to in moves && rules.moveSafety.isSafeMove(board, from, to)
   }
 
   private fun applyMove(from: Int, to: Int, piece: Piece) {
@@ -147,9 +157,9 @@ class GameService(
   }
 
   private fun handleCastling(piece: Piece, from: Int, to: Int): CastlingType? {
-    if (!ruleService.isCastling(piece, from, to)) return null
+    if (!rules.castling.isCastling(piece, from, to)) return null
 
-    val type = ruleService.getCastlingType(from, to)
+    val type = rules.castling.getCastlingType(from, to)
     applyCastlingRookMove(piece.color, type)
     return type
   }

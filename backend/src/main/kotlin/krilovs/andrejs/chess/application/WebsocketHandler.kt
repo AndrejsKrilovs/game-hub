@@ -13,7 +13,7 @@ import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 
 @Component
-class Handler(
+class WebsocketHandler(
   private val mapper: ObjectMapper,
   private val game: GameService
 ) : TextWebSocketHandler() {
