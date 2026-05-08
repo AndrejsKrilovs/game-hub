@@ -99,6 +99,7 @@ class WebsocketHandler(
       is PromotionResult.Success -> {
         sendEvent("MOVE", mapOf("move" to result.move.toDto()))
         sendEvent("STATE", buildStatePayload())
+        handleBotMove()
       }
       is PromotionResult.Error -> {
         sendEvent("ERROR", mapOf("message" to result.message))
