@@ -3,6 +3,13 @@ package krilovs.andrejs.chess.application.bot
 import krilovs.andrejs.chess.application.GameService
 import krilovs.andrejs.chess.domain.model.Color
 import krilovs.andrejs.chess.domain.model.Move
+import krilovs.andrejs.chess.domain.piece.Bishop
+import krilovs.andrejs.chess.domain.piece.King
+import krilovs.andrejs.chess.domain.piece.Knight
+import krilovs.andrejs.chess.domain.piece.Pawn
+import krilovs.andrejs.chess.domain.piece.Piece
+import krilovs.andrejs.chess.domain.piece.Queen
+import krilovs.andrejs.chess.domain.piece.Rook
 import krilovs.andrejs.chess.utils.BoardUtils
 import org.springframework.stereotype.Component
 
@@ -62,22 +69,21 @@ class ChessBot(
 
   private fun evaluatePosition(botColor: Color): Int = evaluation.evaluate(game.getBoard(), botColor)
 
-  private fun orderedMoves(): List<Move> =
-    game.getAllMoves().sortedByDescending { move ->
-      game.getPiece(BoardUtils.toSquare(move.to))?.let { pieceValue(it.type) } ?: 0
+  private fun orderedMoves(): List<Move> = game.getAllMoves().sortedByDescending { move ->
+      game.getPiece(BoardUtils.toSquare(move.to))?.let { pieceValue(it) } ?: 0
     }
 
-  private fun pieceValue(type: String): Int =
-    when (type) {
-      "Queen" -> 900
-      "Rook" -> 500
-      "Bishop" -> 330
-      "Knight" -> 320
-      "Pawn" -> 100
-      "King" -> 20_000
+  private fun pieceValue(piece: Piece): Int =
+    when (piece) {
+      is Queen -> 900
+      is Rook -> 500
+      is Bishop -> 330
+      is Knight -> 320
+      is Pawn -> 100
+      is King -> 20_000
       else -> 0
     }
   companion object {
-    private const val INF = 1_000_000_000
+    private const val INF = Int.MAX_VALUE - 1
   }
 }
