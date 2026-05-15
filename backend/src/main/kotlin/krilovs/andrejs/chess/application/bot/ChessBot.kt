@@ -12,15 +12,14 @@ class ChessBot(
   private val evaluation: EvaluationService
 ) {
 
-  fun findBestMove(): Move? = alphaBeta(depth = 2, alpha = -INF, beta = INF, botColor = game.currentTurn).move
+  fun findBestMove(): Move? = alphaBeta(depth = 3, alpha = -INF, beta = INF, botColor = game.currentTurn).move
 
   private fun alphaBeta(depth: Int, alpha: Int, beta: Int, botColor: Color): ScoredMove {
     if (depth == 0) {
       return ScoredMove(move = null, score = evaluatePosition(botColor))
     }
 
-    val moves = game.getAllMoves()
-
+    val moves = orderedMoves()
     if (moves.isEmpty()) {
       return ScoredMove(move = null, score = evaluatePosition(botColor))
     }
@@ -61,8 +60,23 @@ class ChessBot(
     return ScoredMove(move = bestMove, score = bestScore)
   }
 
-  private fun evaluatePosition(botColor: Color): Int = evaluation.evaluate(game.getBoardCopy(), botColor)
+  private fun evaluatePosition(botColor: Color): Int = evaluation.evaluate(game.getBoard(), botColor)
 
+  private fun orderedMoves(): List<Move> =
+    game.getAllMoves().sortedByDescending { move ->
+      game.getPiece(BoardUtils.toSquare(move.to))?.let { pieceValue(it.type) } ?: 0
+    }
+
+  private fun pieceValue(type: String): Int =
+    when (type) {
+      "Queen" -> 900
+      "Rook" -> 500
+      "Bishop" -> 330
+      "Knight" -> 320
+      "Pawn" -> 100
+      "King" -> 20_000
+      else -> 0
+    }
   companion object {
     private const val INF = 1_000_000_000
   }

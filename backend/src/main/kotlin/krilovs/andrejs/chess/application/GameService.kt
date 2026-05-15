@@ -22,7 +22,8 @@ class GameService(
   lateinit var currentTurn: Color
   lateinit var castlingOption: String
 
-  fun getBoardCopy(): Board = board.copy()
+  fun getBoard(): Board = board
+  fun getPiece(square: Int): Piece? = board[square]
   fun getPieces(): Set<Piece> = board.getPieces()
 
   fun loadFromFEN(fen: String) {
