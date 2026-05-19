@@ -1,19 +1,29 @@
-class BoardComponent {
-  init = (root: HTMLElement) => {
-		const files = ["a","b","c","d","e","f","g","h"]
+import type { BoardPerspective } from "./BoardTypes"
 
-		const renderCells = () => {
+class BoardComponent {
+  init = (root: HTMLElement, perspective: BoardPerspective = "WHITE") => {
+    const files = perspective === "WHITE"
+      ? ["a", "b", "c", "d", "e", "f", "g", "h"]
+      : ["h", "g", "f", "e", "d", "c", "b", "a"]
+
+    const ranks = perspective === "WHITE"
+      ? [8, 7, 6, 5, 4, 3, 2, 1]
+      : [1, 2, 3, 4, 5, 6, 7, 8]
+
+    const renderCells = () => {
       let html = ""
 
       for (let row = 0; row < 8; row++) {
         for (let col = 0; col < 8; col++) {
           const isLight = (row + col) % 2 === 0
-          const coord = `${files[col]}${8 - row}`
+          const file = files[col]
+          const rank = ranks[row]
+          const coord = `${file}${rank}`
 
           html += `
             <div class="cell ${isLight ? "light" : "dark"}" data-pos="${coord}">
-              ${row === 7  ? `<span class="coord bottom">${files[col]}</span>` : ""}
-              ${col === 0  ? `<span class="coord left">${8 - row}</span>` : ""}
+              ${row === 7 ? `<span class="coord bottom">${file}</span>` : ""}
+              ${col === 0 ? `<span class="coord left">${rank}</span>` : ""}
             </div>
           `
         }
@@ -22,7 +32,7 @@ class BoardComponent {
       return html
     }
 
-		root.innerHTML = `<div class="board">${renderCells()}</div>`
+    root.innerHTML = `<div class="board">${renderCells()}</div>`
   }
 }
 

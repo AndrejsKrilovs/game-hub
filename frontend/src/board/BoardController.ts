@@ -1,8 +1,11 @@
 import { boardComponent } from "./BoardComponent"
 import { pieceComponent } from "./PieceComponent"
+import { BoardPerspective } from "./BoardTypes";
 
 class BoardController {
   control = (eventBus: EventBus, root: HTMLElement) => {
+    let perspective: BoardPerspective = "WHITE"
+
     root.addEventListener("click", (e) => {
       const target = e.target as HTMLElement
       const cell = target.closest<HTMLElement>(".cell")
@@ -10,8 +13,11 @@ class BoardController {
       eventBus.emit("CELL_CLICK", { cord: cell.dataset.pos })
     })
 
-    eventBus.on("UPDATE_BOARD", ({ turn, pieces }) => {
-      boardComponent.init(root)
+    eventBus.on("START_GAME", ({ color }) => {
+      perspective = color as BoardPerspective
+    })
+    eventBus.on("UPDATE_BOARD", ({ pieces }) => {
+      boardComponent.init(root, perspective)
       pieceComponent.init(root.querySelector(".board"), pieces)
     })
 		eventBus.on("HIGHLIGHT_MOVES", (moves) => {
