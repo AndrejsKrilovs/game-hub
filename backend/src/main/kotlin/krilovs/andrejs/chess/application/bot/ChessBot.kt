@@ -26,6 +26,6 @@ class ChessBot(private val game: GameService, private val search: SearchService)
   }
 
   companion object {
-    private const val SEARCH_DEPTH = 4
+    private const val SEARCH_DEPTH = 3
   }
 }
