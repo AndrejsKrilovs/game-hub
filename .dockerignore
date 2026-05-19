@@ -1,0 +1,13 @@
+.git
+.gradle
+**/build
+**/node_modules
+**/dist
+.DS_Store
+.idea
+.kotlin
+.vscode
+
+frontend/node_modules
+frontend/dist
+backend/build
