@@ -1,6 +1,7 @@
-package krilovs.andrejs.chess.application
+package krilovs.andrejs.chess.application.bot
 
-import krilovs.andrejs.chess.domain.model.*
+import krilovs.andrejs.chess.domain.model.Board
+import krilovs.andrejs.chess.domain.model.Color
 import krilovs.andrejs.chess.domain.piece.King
 import krilovs.andrejs.chess.domain.piece.Piece
 import krilovs.andrejs.chess.domain.service.RuleFacade

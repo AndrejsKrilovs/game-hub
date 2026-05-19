@@ -1,5 +1,6 @@
 package krilovs.andrejs.chess.application
 
+import krilovs.andrejs.chess.application.bot.MoveGeneratorService
 import krilovs.andrejs.chess.application.bot.UndoMove
 import krilovs.andrejs.chess.domain.model.*
 import krilovs.andrejs.chess.domain.piece.Pawn
