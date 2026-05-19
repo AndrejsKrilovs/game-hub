@@ -114,13 +114,7 @@ class GameService(
     )
   }
 
-  fun getAllMoves(): Set<Move> = moveGenerator
-    .getAllMoves(board, currentTurn, castlingOption)
-    .mapNotNull { (from, to) ->
-      val piece = board[from] ?: return@mapNotNull null
-      Move(BoardUtils.toCord(from), BoardUtils.toCord(to), piece)
-    }
-    .toSet()
+  fun getAllMovePairs(): List<Pair<Int, Int>> = moveGenerator.getAllMoves(board, currentTurn, castlingOption)
 
   fun getGameState(): GameState = rules.gameState.getGameState(board, currentTurn)
 
