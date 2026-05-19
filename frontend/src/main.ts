@@ -26,4 +26,7 @@ setup("#app", { init: () => {} }, boardController)
 
 gameSocket(eventBus)
 gameController.control(eventBus)
-eventBus.emit("WS_CONNECT", "ws://localhost:8080/ws")
+
+const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
+const wsUrl = `${wsProtocol}//${window.location.host}/ws`
+eventBus.emit("WS_CONNECT", wsUrl)
