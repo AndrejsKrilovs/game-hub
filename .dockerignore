@@ -8,6 +8,6 @@
 .kotlin
 .vscode
 
-frontend/node_modules
-frontend/dist
-backend/build
+chess-frontend/node_modules
+chess-frontend/dist
+chess-backend/build
