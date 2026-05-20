@@ -1,2 +1,2 @@
 rootProject.name = "chess-game-app"
-include("backend", "frontend")
+include("chess-backend", "chess-frontend")
