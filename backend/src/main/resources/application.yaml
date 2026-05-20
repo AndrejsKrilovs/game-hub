@@ -1,3 +1,7 @@
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+chess:
+  bot:
+    max-depth: ${BOT_MAX_DEPTH:4}
+    time-limit-ms: ${BOT_TIME_LIMIT_MS:1200}

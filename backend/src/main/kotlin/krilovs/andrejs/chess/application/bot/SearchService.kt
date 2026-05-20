@@ -13,21 +13,39 @@ class SearchService(
   private val positionHash: PositionHashService,
   private val moveOrdering: MoveOrderingService
 ) {
-
+  private var deadlineMs: Long = 0
   fun reset() {
     transpositionTable.clear()
     moveOrdering.clear()
   }
 
-  fun searchBestMove(depth: Int, botColor: Color): SearchResult =
-    searchMoves(
-      depth = depth,
-      ply = 0,
-      alpha = -INF,
-      beta = INF,
-      botColor = botColor,
-      ttMove = null
-    )
+
+  fun searchBestMove(maxDepth: Int, timeLimitMs: Long, botColor: Color): SearchResult {
+    deadlineMs = System.currentTimeMillis() + timeLimitMs
+    var bestResult = SearchResult(move = null, score = 0)
+
+    for (depth in 1..maxDepth) {
+      if (timeExpired()) break
+
+      val result = searchMoves(
+        depth = depth,
+        ply = 0,
+        alpha = -INF,
+        beta = INF,
+        botColor = botColor,
+        ttMove = null
+      )
+
+      if (!timeExpired() && result.move != null) {
+        bestResult = result
+      }
+    }
+
+    return bestResult
+  }
+
+  private fun timeExpired(): Boolean =
+    System.currentTimeMillis() >= deadlineMs
 
   private fun alphaBeta(depth: Int, ply: Int, alpha: Int, beta: Int, botColor: Color): Int {
     if (depth == 0) {
