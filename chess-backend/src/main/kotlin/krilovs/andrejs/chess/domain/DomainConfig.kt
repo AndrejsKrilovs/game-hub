@@ -9,21 +9,21 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-open class DomainConfig {
+class DomainConfig {
   @Bean
-  open fun moveSafetyService() = MoveSafetyService()
+  fun moveSafetyService() = MoveSafetyService()
 
   @Bean
-  open fun promotionService() = PromotionService()
+  fun promotionService() = PromotionService()
 
   @Bean
-  open fun castlingService(moveSafety: MoveSafetyService) = CastlingService(moveSafety)
+  fun castlingService(moveSafety: MoveSafetyService) = CastlingService(moveSafety)
 
   @Bean
-  open fun gameStateService(moveSafety: MoveSafetyService) = GameStateService(moveSafety)
+  fun gameStateService(moveSafety: MoveSafetyService) = GameStateService(moveSafety)
 
   @Bean
-  open fun ruleFacade(
+  fun ruleFacade(
     moveSafety: MoveSafetyService,
     castling: CastlingService,
     gameState: GameStateService,
