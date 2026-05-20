@@ -8,8 +8,8 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
   private val startRank = if (color == Color.WHITE) 1 else 6
 
   override fun copy(): Piece = Pawn(color, square)
-  override fun generateAvailableMoves(board: Board): Set<Int> =
-    buildSet {
+  override fun generateAvailableMoves(board: Board): List<Int> =
+    buildList {
       val one = square + dir
 
       one.takeIf { it.isFree(board) }?.let { first ->
@@ -23,7 +23,7 @@ class Pawn(color: Color, square: Int) : Piece(color, square) {
       diagonalTargets().filter { it.enemyAt(board) }.forEach(::add)
     }
 
-  override fun generateAttacks(board: Board): Set<Int> = diagonalTargets().toSet()
+  override fun generateAttacks(board: Board): List<Int> = diagonalTargets().toList()
 
   private fun diagonalTargets() = sequenceOf(square + dir - 1, square + dir + 1)
     .filter { it.isValidDiagonalFrom(square) }

@@ -17,6 +17,6 @@ abstract class Piece(val color: Color, var square: Int) {
   protected fun isInsideBoard(sq: Int) = sq in 0..63
 
   abstract fun copy(): Piece
-  abstract fun generateAvailableMoves(board: Board): Set<Int>
-  open fun generateAttacks(board: Board): Set<Int> = generateAvailableMoves(board)
+  abstract fun generateAvailableMoves(board: Board): List<Int>
+  open fun generateAttacks(board: Board): List<Int> = generateAvailableMoves(board)
 }

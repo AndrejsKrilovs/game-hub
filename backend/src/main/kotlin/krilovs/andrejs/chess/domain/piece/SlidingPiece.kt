@@ -5,7 +5,7 @@ import krilovs.andrejs.chess.domain.model.Color
 
 abstract class SlidingPiece(color: Color, square: Int, private val offsets: IntArray) : Piece(color, square) {
 
-  override fun generateAvailableMoves(board: Board): Set<Int> =
+  override fun generateAvailableMoves(board: Board): List<Int> =
     offsets
       .asSequence()
       .flatMap { offset ->
@@ -30,7 +30,7 @@ abstract class SlidingPiece(color: Color, square: Int, private val offsets: IntA
 
         (emptySquares + listOfNotNull(captureSquare)).asSequence()
       }
-      .toSet()
+      .toList()
 
   private fun isValidStep(from: Int, to: Int, offset: Int): Boolean {
     if (!isInsideBoard(to)) return false

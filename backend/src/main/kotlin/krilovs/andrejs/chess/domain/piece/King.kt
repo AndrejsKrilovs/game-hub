@@ -6,13 +6,13 @@ import krilovs.andrejs.chess.domain.model.Color
 class King(color: Color, square: Int) : Piece(color, square) {
   private val offsets = intArrayOf(-9, -8, -7, -1, 1, 7, 8, 9)
 
-  override fun generateAvailableMoves(board: Board): Set<Int> =
+  override fun generateAvailableMoves(board: Board): List<Int> =
     stepTargets()
       .filter { board[it] == null || board[it]?.color != color }
-      .toSet()
+      .toList()
 
-  override fun generateAttacks(board: Board): Set<Int> =
-    stepTargets().toSet()
+  override fun generateAttacks(board: Board): List<Int> =
+    stepTargets().toList()
 
   override fun copy(): Piece = King(color, square)
 

@@ -7,7 +7,7 @@ class Knight(color: Color, square: Int) : Piece(color, square) {
   private val offsets = intArrayOf(17, 15, 10, 6, -6, -10, -15, -17)
 
   override fun copy(): Piece = Knight(color, square)
-  override fun generateAvailableMoves(board: Board): Set<Int> =
+  override fun generateAvailableMoves(board: Board): List<Int> =
     offsets
       .asSequence()
       .map { square + it }
@@ -20,5 +20,5 @@ class Knight(color: Color, square: Int) : Piece(color, square) {
 
         board[it] == null || board[it]?.color != color
       }
-      .toSet()
+      .toList()
 }
