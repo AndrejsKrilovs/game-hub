@@ -22,7 +22,7 @@ class WebsocketHandler(
 ) : TextWebSocketHandler() {
   private var botColor = Color.BLACK
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "3K/PPB/8/8/8/8/2pp/k1r w KQkq - 0 1"
+  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
