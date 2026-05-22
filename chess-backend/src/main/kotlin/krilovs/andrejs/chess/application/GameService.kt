@@ -157,9 +157,14 @@ class GameService(
       previousTurn = currentTurn
     )
 
-
     board[from] = null
-    board[to] = piece.apply { square = to }
+    if (rules.promotion.isPromotion(piece, to)) {
+      board[to] = pieceFactory.create('q', piece.color, to)
+    }
+    else {
+      board[to] = piece.apply { square = to }
+    }
+
     currentTurn = currentTurn.opposite()
     return undo
   }

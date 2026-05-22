@@ -411,8 +411,9 @@ class EvaluationService {
     }
 
     return when (distanceToPromotion) {
-      1 -> 250
-      2 -> 120
+      0 -> 800
+      1 -> 300
+      2 -> 140
       3 -> 60
       else -> 0
     }

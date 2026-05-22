@@ -22,7 +22,7 @@ class WebsocketHandler(
 ) : TextWebSocketHandler() {
   private var botColor = Color.BLACK
   private val sessions = mutableSetOf<WebSocketSession>()
-  private val startFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+  private val startFEN = "3K/PPB/8/8/8/8/2pp/k1r w KQkq - 0 1"
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     sessions += session
@@ -113,12 +113,31 @@ class WebsocketHandler(
   }
 
   private fun WebSocketSession.handleBotMove() {
-    val move = bot.takeIf { game.currentTurn == botColor }
-      ?.findBestMove()
-      ?.also { game.makeMove(BoardUtils.toSquare(it.from), BoardUtils.toSquare(it.to)) }
+    if (game.currentTurn != botColor) return
+    val bestMove = bot.findBestMove() ?: return
+    val from = BoardUtils.toSquare(bestMove.from)
+    val to = BoardUtils.toSquare(bestMove.to)
 
-    sendEvent("MOVE", mapOf("move" to (move?.toDto() ?: return)))
-    sendEvent("STATE", buildStatePayload())
+    when (val result = game.makeMove(from, to)) {
+      is MoveResult.Success -> {
+        sendEvent("MOVE", mapOf("move" to result.move.toDto()))
+        sendEvent("STATE", buildStatePayload())
+      }
+      is MoveResult.Promotion -> {
+        when (val promotion = game.promote(from, to, "Queen")) {
+          is PromotionResult.Success -> {
+            sendEvent("MOVE", mapOf("move" to promotion.move.toDto()))
+            sendEvent("STATE", buildStatePayload())
+          }
+          is PromotionResult.Error -> {
+            sendEvent("ERROR", mapOf("message" to promotion.message))
+          }
+        }
+      }
+      is MoveResult.Error -> {
+        sendEvent("ERROR", mapOf("message" to result.message))
+      }
+    }
   }
 
   private fun buildStatePayload() = mapOf(
