@@ -1,183 +1,198 @@
-# ♟ Chess Game (WebSocket + AI)
+# 🎮 Game Hub
 
-Real-time шахматное приложение с AI (Alpha-Beta pruning), написанное на **Kotlin (backend)** и **TypeScript (frontend)**.
+Game Hub — это игровая платформа с авторизацией, выбором игр и отдельными игровыми сервисами.
+
+Проект развивается как multi-module / multi-service приложение. Каждая игра находится в отдельном модуле, а доступ к играм и общим сервисам проходит через единый входной слой.
 
 ---
 
-## 🚀 Features
+## 🚀 Возможности
 
-- ♟ Полная логика шахмат
-- 🤖 AI (Alpha-Beta pruning)
-- 🔄 WebSocket real-time обновления
-- 🎨 UI на TypeScript
-- 📜 История ходов
-- ♜ Рокировки, шах, мат, пат
-- ♟ Превращение пешки (promotion)
+- 🔐 Регистрация и авторизация пользователей
+- 🎮 Главная страница с выбором игр
+- ♟ [Chess Game](./chess-backend/README.md)
+- ⚫ Checkers
+- 🃏 Blackjack
+- 📜 История партий
+- 🏆 Рейтинг и статистика игроков
+- 🔄 Real-time обновления через WebSocket
+- 🐳 Docker deployment
 
 ---
 
 ## 🏗 Архитектура
 
-frontend (TypeScript)
-        ↓ WebSocket
-backend (Kotlin, Spring)
+```text
+browser / frontend
         ↓
-Game Engine (Board + Rules + AI)
+api-gateway
+        ↓
+ ┌─────────────────────┐
+ │ auth-service        │
+ │ chess-backend       │
+ │ checkers-backend    │
+ │ blackjack-backend   │
+ └─────────────────────┘
+```
 
 ---
 
-## ⚙️ Запуск локально
+## 📦 Модули проекта
+
+```text
+game-hub/
+  api-gateway/
+  chess-backend/
+  chess-frontend/
+  checkers-backend/
+  checkers-frontend/
+  blackjack-backend/
+  blackjack-frontend/
+```
+
+### `api-gateway`
+
+Единая точка входа в приложение.
+
+Планируемые маршруты:
+
+```text
+/              → главная страница
+/auth/**       → регистрация / авторизация
+/chess/**      → шахматы
+/checkers/**   → шашки
+/blackjack/**  → blackjack
+```
+
+### `chess-backend`
+
+Backend шахматной игры.
+
+Подробнее: [Chess Game README](./chess-backend/README.md)
+
+### `chess-frontend`
+
+Frontend шахматной игры на TypeScript.
+
+### `checkers-backend`
+
+Планируемый backend для шашек.
+
+### `checkers-frontend`
+
+Планируемый frontend для шашек.
+
+### `blackjack-backend`
+
+Планируемый backend для blackjack. Возможная реализация — Node.js.
+
+### `blackjack-frontend`
+
+Планируемый frontend для blackjack.
+
+---
+
+## ⚙️ Локальный запуск
+
+### Через API Gateway
+
+Терминал 1:
+
+```bash
+./gradlew :chess-backend:bootRun
+```
+
+Терминал 2:
+
+```bash
+./gradlew :api-gateway:bootRun
+```
+
+Открыть:
+
+```text
+http://localhost:8080/chess/
+```
+
+### Шахматы напрямую без gateway
+
+```bash
+./gradlew :chess-backend:bootRun
+```
+
+Открыть:
+
+```text
+http://localhost:8081/chess/
+```
+
+---
+
+## 🐳 Docker
+
+Сборка image:
+
+```bash
+docker build -t game-hub .
+```
+
+Запуск:
+
+```bash
+docker run --rm -p 8080:8080 -e PORT=8080 game-hub
+```
+
+---
+
+## 🌍 Deployment
+
+Проект может деплоиться на:
+
+- Render
+- Docker Hub
+- VPS
+- Oracle Cloud Free Tier
+- Railway
+- Koyeb
+
+Для production рекомендуется запуск через `api-gateway`.
+
+---
+
+## 🧩 Текущий статус
+
+| Модуль | Статус |
+|---|---|
+| API Gateway | Планируется / добавляется |
+| Auth | Планируется |
+| Chess backend | В разработке |
+| Chess frontend | В разработке |
+| Checkers | Планируется |
+| Blackjack | Планируется |
+
+---
+
+## 🛠 Стек
 
 ### Backend
 
-./gradlew bootRun
+- Kotlin
+- Java
+- Spring Boot
+- Spring WebSocket
+- Spring Cloud Gateway
+- Gradle
 
-http://localhost:8080
+### Frontend
 
----
-
-## 📡 WebSocket API
-
-Все сообщения имеют формат:
-
-{
-  "type": "EVENT_TYPE",
-  "payload": {}
-}
-
----
-
-### START_GAME
-
-{
-  "type": "START_GAME",
-  "payload": { "color": "WHITE" }
-}
-
----
-
-### END_GAME
-
-{
-  "type": "END_GAME"
-}
-
----
-
-### GET_MOVES
-
-{
-  "type": "GET_MOVES",
-  "payload": { "from": "e2" }
-}
-
-Ответ:
-
-{
-  "type": "MOVES",
-  "payload": {
-    "moves": ["e3", "e4"]
-  }
-}
-
----
-
-### MAKE_MOVE
-
-{
-  "type": "MAKE_MOVE",
-  "payload": {
-    "from": "e2",
-    "to": "e4"
-  }
-}
-
-Ответ:
-
-{
-  "type": "MOVE",
-  "payload": {
-    "from": "e2",
-    "to": "e4",
-    "piece": "Pawn",
-    "color": "WHITE",
-    "isCastling": false,
-    "castlingType": null
-  }
-}
-
----
-
-### PROMOTION
-
-Сервер:
-
-{
-  "type": "PROMOTION",
-  "payload": {
-    "availablePieces": ["Queen", "Rook", "Bishop", "Knight"],
-    "color": "WHITE"
-  }
-}
-
-Клиент:
-
-{
-  "type": "PROMOTE",
-  "payload": {
-    "piece": "Queen"
-  }
-}
-
----
-
-### STATE
-
-{
-  "type": "STATE",
-  "payload": {
-    "pieces": [...],
-    "turn": "WHITE",
-    "state": "NORMAL"
-  }
-}
-
----
-
-### ERROR
-
-{
-  "type": "ERROR",
-  "payload": {
-    "message": "Некорректный ход"
-  }
-}
-
----
-
-### GAME_ENDED
-
-{
-  "type": "GAME_ENDED",
-  "payload": {
-    "message": "Партия завершена досрочно"
-  }
-}
-
----
-
-## 🧠 AI
-
-- Alpha-Beta pruning
-- Depth: 3–4
-
----
-
-## 📦 Стек
-
-- Kotlin (Spring Boot, WebSocket)
 - TypeScript
+- Vite
+- HTML/CSS
+
+### Deployment
+
 - Docker
+- Render
 
 ---
 
