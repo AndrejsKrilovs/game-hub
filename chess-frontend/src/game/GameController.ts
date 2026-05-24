@@ -48,6 +48,7 @@ class GameController {
 					break
 				case "CHECKMATE":
 					board.classList.add("finished")
+					eventBus.emit("CONFETTI")
 					eventBus.emit("TOAST", { message: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
 					eventBus.emit("ADD_HISTORY", { text: `Партия завершилась победой ${turn === "WHITE" ? "чёрных" : "белых"}!` })
 					break

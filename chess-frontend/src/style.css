@@ -250,3 +250,56 @@ body {
   top: 4px;
   left: 6px;
 }
+
+.confetti-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+
+  width: 10px;
+  height: 16px;
+  border-radius: 2px;
+
+  opacity: 0.95;
+
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.confetti-piece:nth-child(5n + 1) {
+  background: #ffd700;
+}
+
+.confetti-piece:nth-child(5n + 2) {
+  background: #4caf50;
+}
+
+.confetti-piece:nth-child(5n + 3) {
+  background: #e53935;
+}
+
+.confetti-piece:nth-child(5n + 4) {
+  background: #2d6cdf;
+}
+
+.confetti-piece:nth-child(5n + 5) {
+  background: #ffffff;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20px) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+  }
+}

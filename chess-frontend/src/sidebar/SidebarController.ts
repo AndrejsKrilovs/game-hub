@@ -46,7 +46,7 @@ class SidebarController {
         return append(`${pieceColor}: ${ payload.castlingType === "SHORT" ? "короткая рокировка" : "длинная рокировка" }`)
       }
 
-			const pieceName = pieceMetadata[payload.piece]?.name ?? type
+      const pieceName = pieceMetadata[payload.piece]?.name ?? payload.piece
 			const getStateText = (state?: string): string => ({
           CHECK: " (шах)",
           CHECKMATE: " (мат)"

@@ -2,6 +2,7 @@ import "./style.css"
 import { eventBus } from "./game/EventBus"
 import { gameSocket } from "./game/GameSocket"
 import { gameController } from "./game/GameController"
+import { confettiController } from "./game/ConfettiController"
 
 import { sidebarComponent } from "./sidebar/SidebarComponent"
 import { sidebarController } from "./sidebar/SidebarController"
@@ -26,6 +27,7 @@ setup("#app", { init: () => {} }, boardController)
 
 gameSocket(eventBus)
 gameController.control(eventBus)
+confettiController.control(eventBus)
 
 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
 const wsUrl = `${wsProtocol}//${window.location.host}/ws`
