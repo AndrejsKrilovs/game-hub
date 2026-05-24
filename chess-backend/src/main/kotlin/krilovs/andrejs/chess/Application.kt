@@ -13,7 +13,9 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @ConfigurationPropertiesScan
 class Application(private val handler: WebsocketHandler) : WebSocketConfigurer {
   override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-    registry.addHandler(handler, "/ws")
+    registry
+      .addHandler(handler, "/chess/ws")
+      .setAllowedOriginPatterns("*")
   }
 }
 

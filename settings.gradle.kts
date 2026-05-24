@@ -1,2 +1,2 @@
-rootProject.name = "chess-game-app"
+rootProject.name = "game-hub"
 include("chess-backend", "chess-frontend")

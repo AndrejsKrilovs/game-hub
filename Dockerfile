@@ -14,7 +14,7 @@ COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle ./gradle
 COPY chess-backend ./chess-backend
 
-COPY --from=chess-frontend-build /app/chess-frontend/dist ./chess-backend/src/main/resources/static
+COPY --from=chess-frontend-build /app/chess-frontend/dist ./chess-backend/src/main/resources/static/chess
 
 RUN chmod +x ./gradlew
 RUN ./gradlew :chess-backend:bootJar \

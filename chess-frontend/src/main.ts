@@ -30,5 +30,5 @@ gameController.control(eventBus)
 confettiController.control(eventBus)
 
 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-const wsUrl = `${wsProtocol}//${window.location.host}/ws`
-eventBus.emit("WS_CONNECT", wsUrl)
+const chessUrl = `${wsProtocol}//${window.location.host}/chess/ws`
+eventBus.emit("WS_CONNECT", chessUrl)
