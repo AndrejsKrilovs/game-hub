@@ -32,3 +32,10 @@ confettiController.control(eventBus)
 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
 const chessUrl = `${wsProtocol}//${window.location.host}/chess/ws`
 eventBus.emit("WS_CONNECT", chessUrl)
+history.replaceState({ page: "chess" }, "", "/chess")
+history.pushState({ page: "chess-lock" }, "", "/chess")
+
+window.addEventListener("popstate", () => {
+  history.pushState({ page: "chess-lock" }, "", "/chess")
+  eventBus.emit("TOAST", { message: "Нет возможность пользоватся навигацией" })
+})

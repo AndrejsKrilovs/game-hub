@@ -75,6 +75,13 @@ body {
   color: #fff;
 }
 
+.btn-home {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-weight: 700;
+}
+
 .btn.hidden {
   display: none;
 }

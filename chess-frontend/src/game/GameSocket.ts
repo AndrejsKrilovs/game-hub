@@ -8,20 +8,44 @@ class GameSocket {
   private initialized = false
   private reconnectTimer?: number
   private url?: string
+  private shouldReconnect = true
 
   constructor(private bus: EventBus) {
     this.bus.on("WS_CONNECT", (url) => {
       if (typeof url === "string") {
+        this.shouldReconnect = true
         this.connect(url)
       }
     })
+
     this.bus.on("WS_DISCONNECT", () => {
+      this.shouldReconnect = false
       this.stopReconnect()
       this.close()
     })
+
+    this.bus.on("GAME_EXIT", async () => {
+      this.shouldReconnect = false
+      this.stopReconnect()
+      this.close()
+
+      await fetch("/games/chess/exit", {
+        method: "POST",
+        credentials: "same-origin"
+      })
+
+      window.location.replace("/")
+    })
   }
 
-	close = () => this.ws?.close()
+  close = () => {
+    if (!this.ws) return
+
+    this.ws.onclose = null
+    this.ws.close()
+    this.ws = undefined
+    this.bus.emit("WS_CLOSE")
+  }
 
   connect = (url: string) => {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -38,7 +62,7 @@ class GameSocket {
     }
     this.ws.onclose = () => {
       this.bus.emit("WS_CLOSE")
-      this.scheduleReconnect()
+      if (this.shouldReconnect) this.scheduleReconnect()
     }
     this.ws.onerror = (e) => {
       this.bus.emit("WS_ERROR", e)
@@ -70,9 +94,16 @@ class GameSocket {
   }
 
   private scheduleReconnect() {
-    if (!this.url) return
+    if (!this.url || !this.shouldReconnect) return
+
+    this.stopReconnect()
     console.warn("Переподключение через 2 секунды...")
-    this.reconnectTimer = window.setTimeout(() => this.connect(this.url!), 2000)
+
+    this.reconnectTimer = window.setTimeout(() => {
+      if (this.shouldReconnect && this.url) {
+        this.connect(this.url)
+      }
+    }, 2000)
   }
 
   private stopReconnect() {

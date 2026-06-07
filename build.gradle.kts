@@ -1,10 +1,36 @@
 plugins {
-  base
+  java
+  id("org.springframework.boot") version "3.5.13"
+  id("io.spring.dependency-management") version "1.1.7"
+
+  kotlin("jvm") version "2.3.20" apply false
+  kotlin("plugin.spring") version "2.3.20" apply false
+}
+
+group = "krilovs.andrejs"
+version = "1.0-SNAPSHOT"
+
+repositories {
+  mavenCentral()
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of(21)
+  }
+}
+
+dependencies {
+  implementation(project(":chess-backend"))
+  developmentOnly("org.springframework.boot:spring-boot-devtools")
+  implementation("org.springframework.boot:spring-boot-starter-web")
+  implementation("org.springframework.boot:spring-boot-starter-security")
 }
 
 val chessFrontendDir = file("chess-frontend")
-val chessBackendStaticDir = "chess-backend/src/main/resources/static/chess"
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
+val chessBackendStaticDir = "src/main/resources/static/chess"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
+  else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
 
 tasks.register<Exec>("npmInstall") {
   workingDir = chessFrontendDir
@@ -31,12 +57,8 @@ tasks.register<Copy>("copyFrontend") {
   }
 }
 
-project(":chess-backend") {
-  plugins.withId("org.springframework.boot") {
-    tasks.named("processResources") {
-      dependsOn(":copyFrontend")
-    }
-  }
+tasks.named("processResources") {
+  dependsOn("copyFrontend")
 }
 
 tasks.named("clean") {

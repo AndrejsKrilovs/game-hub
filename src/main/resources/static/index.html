@@ -1,0 +1,18 @@
+<h1>Список игр</h1>
+<hr>
+
+<button>Black-Jack</button>
+<button id="chess-btn">Шахматы</button>
+<button>Шашки</button>
+<button>Крестики-нолики</button>
+
+<script>
+    document.querySelector("#chess-btn").addEventListener("click", async () => {
+        await fetch("/games/chess/start", {
+            method: "POST",
+            credentials: "same-origin"
+        })
+
+        window.location.replace("/chess")
+    })
+</script>

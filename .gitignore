@@ -3,7 +3,7 @@ build/
 chess-backend/build
 chess-frontend/dist
 chess-frontend/node_modules
-chess-backend/src/main/resources/static
+src/main/resources/static
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

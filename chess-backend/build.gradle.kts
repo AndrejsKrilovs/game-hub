@@ -23,3 +23,11 @@ repositories {
 kotlin {
   jvmToolchain(21)
 }
+
+tasks.jar {
+  enabled = true
+}
+
+tasks.bootJar {
+  enabled = false
+}
