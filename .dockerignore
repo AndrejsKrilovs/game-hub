@@ -1,13 +1,10 @@
 .git
 .gradle
+.kotlin
+.idea
+.vscode
+
 **/build
 **/node_modules
 **/dist
 .DS_Store
-.idea
-.kotlin
-.vscode
-
-chess-frontend/node_modules
-chess-frontend/dist
-chess-backend/build

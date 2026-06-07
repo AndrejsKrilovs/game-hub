@@ -1,10 +1,19 @@
-<h1>Список игр</h1>
-<hr>
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Hub</title>
+</head>
 
-<button>Black-Jack</button>
-<button id="chess-btn">Шахматы</button>
-<button>Шашки</button>
-<button>Крестики-нолики</button>
+<body>
+<h1>Список игр</h1>
+<hr />
+
+<button type="button">Black-Jack</button>
+<button type="button" id="chess-btn">Шахматы</button>
+<button type="button">Шашки</button>
+<button type="button">Крестики-нолики</button>
 
 <script>
     document.querySelector("#chess-btn").addEventListener("click", async () => {
@@ -16,3 +25,5 @@
         window.location.replace("/chess")
     })
 </script>
+</body>
+</html>

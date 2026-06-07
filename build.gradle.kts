@@ -29,8 +29,7 @@ dependencies {
 
 val chessFrontendDir = file("chess-frontend")
 val chessBackendStaticDir = "src/main/resources/static/chess"
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
-  else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
 
 tasks.register<Exec>("npmInstall") {
   workingDir = chessFrontendDir
