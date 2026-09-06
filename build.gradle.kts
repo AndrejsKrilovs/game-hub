@@ -31,8 +31,7 @@ val sharedFrontendDir = file("shared-frontend")
 val chessFrontendDir = file("chess-frontend")
 val chessStaticDir = "src/main/resources/static/chess"
 
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
-  else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
 
 tasks.register<Exec>("npmSharedInstall") {
   description = "Install shared frontend dependencies"
