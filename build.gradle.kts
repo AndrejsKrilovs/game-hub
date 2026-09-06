@@ -27,41 +27,83 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-security")
 }
 
+val sharedFrontendDir = file("shared-frontend")
 val chessFrontendDir = file("chess-frontend")
-val chessBackendStaticDir = "src/main/resources/static/chess"
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
+val chessStaticDir = "src/main/resources/static/chess"
 
-tasks.register<Exec>("npmInstall") {
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
+  else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
+
+tasks.register<Exec>("npmSharedInstall") {
+  description = "Install shared frontend dependencies"
+  workingDir = sharedFrontendDir
+  commandLine(npmCommand, "install")
+  inputs.file("$sharedFrontendDir/package.json")
+  outputs.dir("$sharedFrontendDir/node_modules")
+}
+
+tasks.register<Exec>("npmSharedBuild") {
+  description = "Build shared frontend"
+  workingDir = sharedFrontendDir
+  commandLine(npmCommand, "run", "build")
+  dependsOn("npmSharedInstall")
+  inputs.dir("$sharedFrontendDir/src")
+  inputs.file("$sharedFrontendDir/package.json")
+  inputs.file("$sharedFrontendDir/tsconfig.json")
+  outputs.file("$sharedFrontendDir/.gradle-build-marker")
+
+  doLast {
+    file("$sharedFrontendDir/.gradle-build-marker").writeText("ok")
+  }
+}
+
+tasks.register<Exec>("npmChessInstall") {
+  description = "Install chess frontend dependencies"
   workingDir = chessFrontendDir
   commandLine(npmCommand, "install")
+  dependsOn("npmSharedBuild")
   inputs.file("$chessFrontendDir/package.json")
+  inputs.file("$sharedFrontendDir/package.json")
   outputs.dir("$chessFrontendDir/node_modules")
 }
 
-tasks.register<Exec>("npmBuild") {
+tasks.register<Exec>("npmChessBuild") {
+  description = "Build chess frontend"
   workingDir = chessFrontendDir
   commandLine(npmCommand, "run", "build")
-  dependsOn("npmInstall")
+  dependsOn("npmChessInstall")
   inputs.dir("$chessFrontendDir/src")
+  inputs.dir("$sharedFrontendDir/src")
   inputs.file("$chessFrontendDir/package.json")
+  inputs.file("$chessFrontendDir/package-lock.json")
+  inputs.file("$chessFrontendDir/index.html")
+  inputs.file("$chessFrontendDir/tsconfig.json")
+  inputs.file("$chessFrontendDir/vite.config.ts")
+  inputs.file("$sharedFrontendDir/package.json")
+  inputs.file("$sharedFrontendDir/package-lock.json")
+  inputs.file("$sharedFrontendDir/tsconfig.json")
   outputs.dir("$chessFrontendDir/dist")
 }
 
-tasks.register<Copy>("copyFrontend") {
-  dependsOn("npmBuild")
+tasks.register<Copy>("copyChessFrontend") {
+  description = "Copy chess frontend to Spring static resources"
+  dependsOn("npmChessBuild")
   from("$chessFrontendDir/dist")
-  into(chessBackendStaticDir)
+  into(chessStaticDir)
+
   doFirst {
-    delete(chessBackendStaticDir)
+    delete(chessStaticDir)
   }
 }
 
 tasks.named("processResources") {
-  dependsOn("copyFrontend")
+  dependsOn("copyChessFrontend")
 }
 
 tasks.named("clean") {
   doLast {
-    delete(layout.projectDirectory.dir(chessBackendStaticDir))
+    delete(layout.projectDirectory.dir(chessStaticDir))
+    delete(layout.projectDirectory.dir("$chessFrontendDir/dist"))
+    delete(layout.projectDirectory.file("$sharedFrontendDir/.gradle-build-marker"))
   }
 }

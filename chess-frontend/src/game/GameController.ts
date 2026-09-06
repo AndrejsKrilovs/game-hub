@@ -1,3 +1,5 @@
+import {EventBus} from "shared-frontend";
+
 class GameController {
 	control = (eventBus: EventBus) => {
 		let lastMove: any = null

@@ -1,4 +1,18 @@
+import {EventBus} from "./EventBus";
+
 class ConfettiController {
+  private static instance?: ConfettiController
+
+  private constructor() {}
+
+  static getInstance = (): ConfettiController => {
+    if (!ConfettiController.instance) {
+      ConfettiController.instance = new ConfettiController()
+    }
+
+    return ConfettiController.instance
+  }
+
   control = (eventBus: EventBus) => {
     eventBus.on("CONFETTI", () => this.launch())
   }
@@ -29,4 +43,4 @@ class ConfettiController {
   }
 }
 
-export const confettiController = new ConfettiController()
+export const confettiController = ConfettiController.getInstance()

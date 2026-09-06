@@ -1,32 +1,49 @@
 import { colorComponent } from "./ColorComponent"
 import { endGameComponent } from "./EndGameComponent"
 import { messageComponent } from "./MessageComponent"
-import { promotionComponent } from "./PromotionComponent"
+import type { EventBus } from "../game/EventBus"
 
-type MoveType = {
-  from: string
-  to: string
-  piece: string
-  color: string
-}
+type ToastType = "info" | "success" | "error"
+type CurrentComponent = "color" | "end" | "message" | null
 
 class ToastController {
+  private static instance?: ToastController
+
+  private constructor() {}
+
+  static getInstance = (): ToastController => {
+    if (!ToastController.instance) {
+      ToastController.instance = new ToastController()
+    }
+
+    return ToastController.instance
+  }
+
   control = (eventBus: EventBus, root: HTMLElement) => {
     let color: string | null = null
-    let promotionMove: MoveType | null = null
-    let currentComponent: "color" | "end" | "message" | "promotion" | null = null
+    let currentComponent: CurrentComponent = null
+    let clearTimer: number | undefined
 
     const clear = () => {
       root.classList.remove("show", "info", "success", "error")
       root.innerHTML = ""
       color = null
-      promotionMove = null
       currentComponent = null
+
+      if (clearTimer) {
+        window.clearTimeout(clearTimer)
+        clearTimer = undefined
+      }
     }
 
-    const render = (component: { init: (el: HTMLElement, msg?: string) => void }, data?: any) => {
+    const render = (
+      component: { init: (el: HTMLElement, data?: any) => void },
+      data?: any,
+      type: ToastType = "info"
+    ) => {
+      root.classList.remove("info", "success", "error")
       component.init(root, data)
-			data ? root.classList.add("info", "show") : root.classList.add("show")
+      root.classList.add(type, "show")
     }
 
     eventBus.on("SHOW_COLOR_PICKER", () => {
@@ -38,16 +55,11 @@ class ToastController {
       currentComponent = "end"
       render(endGameComponent)
     })
-    eventBus.on("TOAST", ({ message }) => {
+    eventBus.on("TOAST", (payload: any) => {
       currentComponent = "message"
-      render(messageComponent, message)
-      setTimeout(clear, 2000)
+      render(messageComponent, payload?.message ?? "", payload?.type ?? "info")
+      clearTimer = window.setTimeout(clear, 2000)
     })
-		eventBus.on("WS:PROMOTION", ({ move, availablePieces }) => {
-			promotionMove = move
-			currentComponent = "promotion"
-			render(promotionComponent, { color: move.color, availablePieces })
-		})
 
     root.addEventListener("click", (e) => {
       const target = e.target as HTMLElement
@@ -73,13 +85,8 @@ class ToastController {
           clear()
         }
       }
-			if (currentComponent === "promotion") {
-				promotionMove.piece = target.dataset.piece
-				eventBus.emit("WS_SEND", { type: "PROMOTE", payload: promotionMove })
-				clear()
-      }
     })
   }
 }
 
-export const toastController = new ToastController()
+export const toastController = ToastController.getInstance()

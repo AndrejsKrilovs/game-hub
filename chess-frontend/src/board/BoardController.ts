@@ -1,6 +1,7 @@
 import { boardComponent } from "./BoardComponent"
 import { pieceComponent } from "./PieceComponent"
 import { BoardPerspective } from "./BoardTypes";
+import {EventBus} from "shared-frontend";
 
 class BoardController {
   control = (eventBus: EventBus, root: HTMLElement) => {

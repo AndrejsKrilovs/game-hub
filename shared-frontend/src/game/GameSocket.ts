@@ -1,3 +1,5 @@
+import type { EventBus } from "./EventBus"
+
 type WSMessage = {
   type: string
   payload?: unknown
@@ -10,7 +12,7 @@ class GameSocket {
   private url?: string
   private shouldReconnect = true
 
-  constructor(private bus: EventBus) {
+  constructor(private bus: EventBus, private game: string) {
     this.bus.on("WS_CONNECT", (url) => {
       if (typeof url === "string") {
         this.shouldReconnect = true
@@ -29,7 +31,7 @@ class GameSocket {
       this.stopReconnect()
       this.close()
 
-      await fetch("/games/chess/exit", {
+      await fetch(`/games/${this.game}/exit`, {
         method: "POST",
         credentials: "same-origin"
       })
@@ -62,10 +64,12 @@ class GameSocket {
     }
     this.ws.onclose = () => {
       this.bus.emit("WS_CLOSE")
-      if (this.shouldReconnect) this.scheduleReconnect()
+      if (this.shouldReconnect) {
+        this.scheduleReconnect()
+      }
     }
-    this.ws.onerror = (e) => {
-      this.bus.emit("WS_ERROR", e)
+    this.ws.onerror = (event) => {
+      this.bus.emit("WS_ERROR", event)
     }
     this.ws.onmessage = ({ data }) => {
       try {
@@ -73,7 +77,7 @@ class GameSocket {
         this.bus.emit("WS_MESSAGE", msg)
         this.bus.emit(`WS:${msg.type}`, msg.payload)
       }
-			catch {
+      catch {
         console.warn("Некорректное сообщение для протокола:", data)
       }
     }
@@ -114,4 +118,4 @@ class GameSocket {
   }
 }
 
-export const gameSocket = (bus: EventBus) => new GameSocket(bus)
+export const gameSocket = (bus: EventBus, game: string) => new GameSocket(bus, game)

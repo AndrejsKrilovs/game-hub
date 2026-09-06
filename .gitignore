@@ -1,8 +1,8 @@
 .gradle
 build/
-chess-backend/build
-chess-frontend/dist
-chess-frontend/node_modules
+*/build
+*/dist
+*/node_modules
 src/main/resources/static
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/

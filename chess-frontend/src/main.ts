@@ -1,41 +1,14 @@
-import "./style.css"
-import { eventBus } from "./game/EventBus"
-import { gameSocket } from "./game/GameSocket"
+import { bootstrapGame } from "shared-frontend"
+
+import { chessHistoryWriter } from "./game/ChessHistoryWriter"
 import { gameController } from "./game/GameController"
-import { confettiController } from "./game/ConfettiController"
 
-import { sidebarComponent } from "./sidebar/SidebarComponent"
-import { sidebarController } from "./sidebar/SidebarController"
+import { promotionController } from "./toast/PromotionController"
 
-import { toastController } from "./toast/ToastController"
 import { boardController } from "./board/BoardController"
 
-const setup = (
-  selector: string,
-  component: { init?: (el: HTMLElement) => void },
-  controller: { control: (bus: typeof eventBus, el: HTMLElement) => void }
-) => {
-  const el = document.querySelector<HTMLElement>(selector)
-  if (!el) throw new Error(`${selector} not found`)
-  component.init?.(el)
-  controller.control(eventBus, el)
-}
+const { eventBus, appContainer, toastContainer} = bootstrapGame("chess", chessHistoryWriter.writeHistory)
 
-setup("#sidebar", sidebarComponent, sidebarController)
-setup(".toast", { init: () => {} }, toastController)
-setup("#app", { init: () => {} }, boardController)
-
-gameSocket(eventBus)
+boardController.control(eventBus, appContainer)
+promotionController.control(eventBus, toastContainer)
 gameController.control(eventBus)
-confettiController.control(eventBus)
-
-const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-const chessUrl = `${wsProtocol}//${window.location.host}/chess/ws`
-eventBus.emit("WS_CONNECT", chessUrl)
-history.replaceState({ page: "chess" }, "", "/chess")
-history.pushState({ page: "chess-lock" }, "", "/chess")
-
-window.addEventListener("popstate", () => {
-  history.pushState({ page: "chess-lock" }, "", "/chess")
-  eventBus.emit("TOAST", { message: "Нет возможность пользоватся навигацией" })
-})

@@ -1,7 +1,33 @@
-import { pieceMetadata } from "../board/PieceComponent"
+import { EventBus } from "../game/EventBus";
+
+export type HistoryFormatter = (payload: any) => string
+
+const defaultHistoryFormatter: HistoryFormatter = (payload) => {
+  if (payload?.text) {
+    return String(payload.text)
+  }
+
+  return ""
+}
 
 class SidebarController {
-  control = (eventBus: EventBus, root: HTMLElement) => {
+  private static instance?: SidebarController
+  private historyFormatter: HistoryFormatter = defaultHistoryFormatter
+
+  private constructor() {}
+
+  static getInstance = (): SidebarController => {
+    if (!SidebarController.instance) {
+      SidebarController.instance = new SidebarController()
+    }
+
+    return SidebarController.instance
+  }
+
+  control = (
+    eventBus: EventBus,
+    root: HTMLElement
+  ) => {
     const homeBtn = root.querySelector<HTMLButtonElement>("[data-home]")!
     const startBtn = root.querySelector<HTMLButtonElement>("[data-start]")!
     const historyEl = root.querySelector<HTMLTextAreaElement>("textarea")!
@@ -33,34 +59,27 @@ class SidebarController {
       endBtn.classList.remove("hidden")
       eventBus.emit("SHOW_COLOR_PICKER")
     })
-    eventBus.on("GAME_ENDED", (payload) => {
+    eventBus.on("GAME_ENDED", (payload: any) => {
       homeBtn.classList.remove("hidden")
       startBtn.classList.remove("hidden")
       endBtn.classList.add("hidden")
       eventBus.emit("TOAST", payload)
       eventBus.emit("ADD_HISTORY", { text: payload.message })
     })
-		eventBus.on("ADD_HISTORY", (payload) => {
-			if (payload.text) {
-				homeBtn.classList.remove("hidden")
-				startBtn.classList.remove("hidden")
+    eventBus.on("ADD_HISTORY", (payload: any) => {
+      if (payload.resetControls) {
+        homeBtn.classList.remove("hidden")
+        startBtn.classList.remove("hidden")
         endBtn.classList.add("hidden")
-				return append(`${payload.text}`)
-			}
-
-			const pieceColor = payload.color === "WHITE" ? "Белые" : "Чёрные"
-			if (payload.castlingType) {
-        return append(`${pieceColor}: ${ payload.castlingType === "SHORT" ? "короткая рокировка" : "длинная рокировка" }`)
       }
 
-      const pieceName = pieceMetadata[payload.piece]?.name ?? payload.piece
-			const getStateText = (state?: string): string => ({
-          CHECK: " (шах)",
-          CHECKMATE: " (мат)"
-      })[state ?? ""] ?? ""
-			append(`${pieceColor}: ${pieceName} ${payload.from} → ${payload.to} ${getStateText(payload.state)}`)
+      append(this.historyFormatter(payload))
     })
+  }
+
+  setHistoryFormatter = (historyFormatter: HistoryFormatter) => {
+    this.historyFormatter = historyFormatter
   }
 }
 
-export const sidebarController = new SidebarController()
+export const sidebarController = SidebarController.getInstance()
