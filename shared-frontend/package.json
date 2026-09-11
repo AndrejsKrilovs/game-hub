@@ -2,16 +2,23 @@
   "name": "shared-frontend",
   "version": "1.0.0",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.min.js",
+  "module": "./dist/index.min.js",
+  "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./style.css": "./src/style.css"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.min.js"
+    },
+    "./style.css": "./dist/index.min.css"
   },
+  "files": ["dist"],
   "scripts": {
-    "build": "tsc --noEmit"
+    "build": "vite build"
   },
   "devDependencies": {
-    "typescript": "^6.0.2"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.2",
+    "vite": "^8.3.0"
   }
 }

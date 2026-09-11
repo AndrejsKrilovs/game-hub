@@ -49,11 +49,8 @@ tasks.register<Exec>("npmSharedBuild") {
   inputs.dir("$sharedFrontendDir/src")
   inputs.file("$sharedFrontendDir/package.json")
   inputs.file("$sharedFrontendDir/tsconfig.json")
-  outputs.file("$sharedFrontendDir/.gradle-build-marker")
-
-  doLast {
-    file("$sharedFrontendDir/.gradle-build-marker").writeText("ok")
-  }
+  inputs.file("$sharedFrontendDir/vite.config.ts")
+  outputs.dir("$sharedFrontendDir/dist")
 }
 
 tasks.register<Exec>("npmChessInstall") {
@@ -62,7 +59,7 @@ tasks.register<Exec>("npmChessInstall") {
   commandLine(npmCommand, "install")
   dependsOn("npmSharedBuild")
   inputs.file("$chessFrontendDir/package.json")
-  inputs.file("$sharedFrontendDir/package.json")
+  inputs.dir("$sharedFrontendDir/dist")
   outputs.dir("$chessFrontendDir/node_modules")
 }
 
@@ -72,15 +69,10 @@ tasks.register<Exec>("npmChessBuild") {
   commandLine(npmCommand, "run", "build")
   dependsOn("npmChessInstall")
   inputs.dir("$chessFrontendDir/src")
-  inputs.dir("$sharedFrontendDir/src")
   inputs.file("$chessFrontendDir/package.json")
-  inputs.file("$chessFrontendDir/package-lock.json")
-  inputs.file("$chessFrontendDir/index.html")
   inputs.file("$chessFrontendDir/tsconfig.json")
   inputs.file("$chessFrontendDir/vite.config.ts")
-  inputs.file("$sharedFrontendDir/package.json")
-  inputs.file("$sharedFrontendDir/package-lock.json")
-  inputs.file("$sharedFrontendDir/tsconfig.json")
+  inputs.dir("$sharedFrontendDir/dist")
   outputs.dir("$chessFrontendDir/dist")
 }
 
@@ -103,6 +95,6 @@ tasks.named("clean") {
   doLast {
     delete(layout.projectDirectory.dir(chessStaticDir))
     delete(layout.projectDirectory.dir("$chessFrontendDir/dist"))
-    delete(layout.projectDirectory.file("$sharedFrontendDir/.gradle-build-marker"))
+    delete(layout.projectDirectory.dir("$sharedFrontendDir/dist"))
   }
 }

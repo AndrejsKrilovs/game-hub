@@ -7,6 +7,6 @@ export { sidebarController } from "./sidebar/SidebarController"
 
 export { toastController } from "./toast/ToastController"
 
-export { bootstrapGame } from "./bootstrap"
+export { bootstrapGame, createGameConfig } from "./bootstrap"
 
 export type { HistoryFormatter } from "./sidebar/SidebarController"
