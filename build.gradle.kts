@@ -69,9 +69,6 @@ fun registerFrontendModule(name: String, dir: File,
       dependsOn(build)
       from(dir.resolve("dist"))
       into("src/main/resources/static/$sub")
-      doFirst {
-        delete("src/main/resources/static/$sub")
-      }
     }
     tasks.named("processResources") { dependsOn(copy) }
   }
@@ -84,7 +81,7 @@ registerFrontendModule("Chess", chessFrontendDir, dependsOnBuild = sharedBuild, 
 
 tasks.named("clean") {
   doLast {
-    delete(file("src/main/resources/static"))
+    delete(file("src/main/resources/static/chess"))
     delete(chessFrontendDir.resolve("dist"))
     delete(sharedFrontendDir.resolve("dist"))
   }

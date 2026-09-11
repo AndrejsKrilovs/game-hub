@@ -16,6 +16,7 @@ yarn-error.log*
 # Spring Generated Static Assets
 src/main/resources/static/*
 !src/main/resources/static/.gitkeep
+!src/main/resources/static/index.html
 
 # IDEs & Editors
 .idea/

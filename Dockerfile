@@ -1,24 +1,24 @@
-# 1. Сборка всех фронтенд-модулей
+# 1. Сборка фронтенд-модулей (Node.js)
 FROM node:24-alpine AS frontend-build
 WORKDIR /app
 
-# Копируем манифесты для эффективного кэширования слоев npm
+# Копируем package.json обоиx модулей
 COPY shared-frontend/package*.json ./shared-frontend/
 COPY chess-frontend/package*.json ./chess-frontend/
 
-# Сборка shared-frontend
+# Сборка общего UI-каркаса
 WORKDIR /app/shared-frontend
 RUN npm install
 COPY shared-frontend/ ./
 RUN npm run build
 
-# Сборка chess-frontend (зависит от собранного shared-frontend)
+# Сборка шахмат (видит ../shared-frontend/dist)
 WORKDIR /app/chess-frontend
 RUN npm install
 COPY chess-frontend/ ./
 RUN npm run build
 
-# 2. Сборка Spring Boot бэкенда
+# 2. Сборка Spring Boot (Java 21)
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
@@ -27,16 +27,14 @@ COPY gradle ./gradle
 COPY src ./src
 COPY chess-backend ./chess-backend
 
-# Копируем готовый dist шахмат напрямую в static-ресурсы Spring
+# Подкладываем скомпилированный фронтенд в static шахмат
 COPY --from=frontend-build /app/chess-frontend/dist ./src/main/resources/static/chess
 
 RUN chmod +x ./gradlew
-# Отключаем таску копирования фронтенда в Gradle, так как статика уже подложена
-RUN ./gradlew bootJar \
-    -x copyChessFrontend \
-    --no-daemon
+# Отключаем Gradle-таску по её НОВОМУ имени: copyChessFrontend
+RUN ./gradlew bootJar -x copyChessFrontend --no-daemon
 
-# 3. Минималистичный образ для продакшена
+# 3. Минимальный образ для запуска
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 

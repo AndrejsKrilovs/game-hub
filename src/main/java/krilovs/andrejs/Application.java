@@ -14,6 +14,10 @@ import static krilovs.andrejs.SpringSecurityConfig.CHESS_ALLOWED;
 @Controller
 @SpringBootApplication
 public class Application {
+    @GetMapping("/")
+    public String home() {
+        return "forward:/index.html";
+    }
 
     @PostMapping("/games/chess/start")
     public ResponseEntity<Void> startChess(HttpSession session) {

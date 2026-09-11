@@ -13,7 +13,7 @@ export default defineConfig({
       fileName: () => 'index.min.js',
       formats: ['es'],
     },
-    rolldownOptions: {
+    rollupOptions: {
       output: { assetFileNames: 'index.min.[ext]' }
     },
     minify: true,

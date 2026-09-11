@@ -27,6 +27,7 @@ public class SpringSecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/index.html",
+                                "/chess/assets/**",
                                 "/games/*/start",
                                 "/games/*/exit",
                                 "/favicon.ico"
