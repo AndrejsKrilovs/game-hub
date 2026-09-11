@@ -1,4 +1,4 @@
-import {EventBus} from "shared-frontend";
+import { EventBus } from "shared-frontend";
 
 class GameController {
 	control = (eventBus: EventBus) => {

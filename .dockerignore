@@ -7,4 +7,12 @@
 **/build
 **/node_modules
 **/dist
+.vite
+*.tsbuildinfo
+
+src/main/resources/static/*
+!src/main/resources/static/.gitkeep
+
 .DS_Store
+Thumbs.db
+*.log

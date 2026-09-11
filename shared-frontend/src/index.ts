@@ -1,4 +1,5 @@
-export { EventBus, eventBus } from "./game/EventBus"
+export type { EventBus } from "./game/EventBus"
+export { eventBus } from "./game/EventBus"
 export { gameSocket } from "./game/GameSocket"
 export { confettiController } from "./game/ConfettiController"
 

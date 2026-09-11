@@ -1,7 +1,16 @@
 import { pieceMetadata } from "../board/PieceComponent"
 
+type PieceType = keyof typeof pieceMetadata
+
+export interface PromotionData {
+  availablePieces: PieceType[]
+  color: "WHITE" | "BLACK"
+}
+
 class PromotionComponent {
-  init = (root: HTMLElement, data?: any) => {
+  init = (root: HTMLElement, data?: PromotionData) => {
+    if (!data) return
+
     root.innerHTML = `
 			<div class="toast-content">
         <div>Выберите фигуру</div>
