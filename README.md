@@ -1,201 +1,100 @@
 # 🎮 Game Hub
 
-Game Hub — это игровая платформа с авторизацией, выбором игр и отдельными игровыми сервисами.
-
-Проект развивается как multi-module / multi-service приложение. Каждая игра находится в отдельном модуле, а доступ к играм и общим сервисам проходит через единый входной слой.
+Game Hub — это игровая платформа с модульной монорепозиторной архитектурой, объединяющая Spring Boot бэкенд и фронтенд-игры на TypeScript/Vite с изоляцией общих ресурсов через единую библиотеку `shared-frontend`.
 
 ---
 
 ## 🚀 Возможности
 
-- 🔐 Регистрация и авторизация пользователей
-- 🎮 Главная страница с выбором игр
-- ♟ [Chess Game](./chess-backend/README.md)
-- ⚫ Checkers
-- 🃏 Blackjack
-- 📜 История партий
-- 🏆 Рейтинг и статистика игроков
-- 🔄 Real-time обновления через WebSocket
-- 🐳 Docker deployment
+- 🔐 **Сессионный контроль доступа:** Защита игровых маршрутов через Spring Security и `HttpSession`
+- 🎮 **Главная страница:** Выбор доступных игр и навигация
+- ♟ **[Chess Game](./chess-backend/README.md):** Полноценный шахматный модуль
+- ⚫ **Checkers:** Шашки (в планах)
+- 🃏 **Blackjack:** Блэкджек (в планах)
+- 📜 **История партий:** Сайдбар статистики и логов
+- 🏆 **Рейтинг игроков:** Таблица лидеров
+- 🔄 **Real-time синхронизация:** Состояние партий через WebSocket
+- ⚡ **Virtual HTML:** Генерация HTML и единая обвязка Vite 8
+- 🐳 **Docker:** Оптимизированный мультистейдж деплой
+
+---
+
+## 🔒 Безопасность и Доступ (Spring Security)
+
+Доступ к играм регулируется на уровне HTTP-сессий с помощью пользовательской логики авторизации в `SpringSecurityConfig`:
+
+- **Публичные маршруты (`permitAll`):** Главная страница (`/`, `/index.html`).
+- **Редирект при отказе:** Если пользователь пытается зайти на `/chess/**` без разрешения или с истёкшей сессией, `AccessDeniedHandler` автоматически перенаправляет его на главную страницу `/`.
 
 ---
 
 ## 🏗 Архитектура
 
-```text
-browser / frontend
-        ↓
-api-gateway
-        ↓
- ┌─────────────────────┐
- │ auth-service        │
- │ chess-backend       │
- │ checkers-backend    │
- │ blackjack-backend   │
- └─────────────────────┘
-```
+- `api-gateway`: Единая точка входа для всех запросов.
+- **Backend-сервисы (`chess-backend`):** Игровая логика на Spring Boot.
+- **Frontend-модули (`chess-frontend`):** Интерфейсы игр на TypeScript/Vite.
+- `shared-frontend`: Общая библиотека для всех фронтенд-модулей (`file:../shared-frontend`). 
 
 ---
 
 ## 📦 Модули проекта
 
-```text
-game-hub/
-  api-gateway/
-  chess-backend/
-  chess-frontend/
-  checkers-backend/
-  checkers-frontend/
-  blackjack-backend/
-  blackjack-frontend/
-```
-
-### `api-gateway`
-
-Единая точка входа в приложение.
-
-Планируемые маршруты:
-
-```text
-/              → главная страница
-/auth/**       → регистрация / авторизация
-/chess/**      → шахматы
-/checkers/**   → шашки
-/blackjack/**  → blackjack
-```
-
-### `chess-backend`
-
-Backend шахматной игры.
-
-Подробнее: [Chess Game README](./chess-backend/README.md)
-
-### `chess-frontend`
-
-Frontend шахматной игры на TypeScript.
-
-### `checkers-backend`
-
-Планируемый backend для шашек.
-
-### `checkers-frontend`
-
-Планируемый frontend для шашек.
-
-### `blackjack-backend`
-
-Планируемый backend для blackjack. Возможная реализация — Node.js.
-
-### `blackjack-frontend`
-
-Планируемый frontend для blackjack.
+- `shared-frontend` — Базовый UI-каркас, сокеты, типы и плагины Vite.
+- `chess-backend` — Игровая логика шахмат на Spring Boot + Spring Security.
+- `chess-frontend` — Фронтенд шахмат (зависит от `shared-frontend`).
+- `checkers-backend` — (Планируется) Бэкенд шашек.
+- `checkers-frontend` — (Планируется) Фронтенд шашек.
+- `api-gateway` — Единая точка входа.
 
 ---
 
 ## ⚙️ Локальный запуск
 
-### Через API Gateway
+### Автоматическая сборка и запуск через Gradle
 
-Терминал 1:
-
-```bash
-./gradlew :chess-backend:bootRun
-```
-
-Терминал 2:
+Gradle автоматически отслеживает изменения исходников через `fileTree`, устанавливает NPM-зависимости и собирает `shared-frontend` перед сборкой игр.
 
 ```bash
-./gradlew :api-gateway:bootRun
+./gradlew bootRun
 ```
 
-Открыть:
-
-```text
-http://localhost:8080/chess/
-```
-
-### Шахматы напрямую без gateway
-
-```bash
-./gradlew :chess-backend:bootRun
-```
-
-Открыть:
-
-```text
-http://localhost:8081/chess/
-```
+*Доступ по адресу:* `http://localhost:8080/`.
 
 ---
 
-## 🐳 Docker
+## 🐳 Docker Deployment
 
-Сборка image:
+Мультистейдж Dockerfile собирает `shared-frontend`, транслирует бандлы в игры и запечатывает статичный дистрибутив в Spring Boot JAR.
 
+**Сборка образа:**
 ```bash
 docker build -t game-hub .
 ```
 
-Запуск:
-
+**Запуск контейнера:**
 ```bash
 docker run --rm -p 8080:8080 -e PORT=8080 game-hub
 ```
 
----
-
-## 🌍 Deployment
-
-Проект может деплоиться на:
-
-- Render
-- Docker Hub
-- VPS
-- Oracle Cloud Free Tier
-- Railway
-- Koyeb
-
-Для production рекомендуется запуск через `api-gateway`.
+*Приложение доступно по адресу:* `http://localhost:8080/chess/`
 
 ---
 
 ## 🧩 Текущий статус
 
-| Модуль | Статус |
-|---|---|
-| API Gateway | Планируется / добавляется |
-| Auth | Планируется |
-| Chess backend | В разработке |
-| Chess frontend | В разработке |
-| Checkers | Планируется |
-| Blackjack | Планируется |
+| Модуль                 | Статус | Технологии                        |
+|:-----------------------| :--- |:----------------------------------|
+| **shared-frontend**    | ✅ Готов | TypeScript, Vite 8, EventBus      |
+| **chess-frontend**     | ✅ Готов | TypeScript, Shared Infrastructure |
+| **chess-backend**      | ✅ Готов | Kotlin, Spring Boot, WebSockets   |     |
+| **checkers-frontend**  | ⏳ Планируется | TypeScript, Shared Infrastructure |
+| **checkers-backend**   | ⏳ Планируется | Java 21, Spring Boot              |
+| **blackjack-frontend** | ⏳ Планируется | TypeScript, Shared Infrastructure |
+| **blackjack-backend**  | ⏳ Планируется | Go                                |
 
----
-
-## 🛠 Стек
-
-### Backend
-
-- Kotlin
-- Java
-- Spring Boot
-- Spring WebSocket
-- Spring Cloud Gateway
-- Gradle
-
-### Frontend
-
-- TypeScript
-- Vite
-- HTML/CSS
-
-### Deployment
-
-- Docker
-- Render
 
 ---
 
 ## 👨‍💻 Автор
 
-Andrej Krilovs
+**Andrej Krilovs**
