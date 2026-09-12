@@ -3,10 +3,15 @@ package krilovs.andrejs;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Map;
 
 import static krilovs.andrejs.SpringSecurityConfig.CHESS_ACTIVE;
 import static krilovs.andrejs.SpringSecurityConfig.CHESS_ALLOWED;
@@ -45,6 +50,17 @@ public class Application {
         session.removeAttribute(CHESS_ALLOWED);
         session.removeAttribute(CHESS_ACTIVE);
         return ResponseEntity.ok().build();
+    }
+
+    @ResponseBody
+    @GetMapping("/api/me")
+    public ResponseEntity<Map<String, String>> getCurrentUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            return ResponseEntity.ok(Map.of("username", auth.getName()));
+        }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
     public static void main(String[] args) {
