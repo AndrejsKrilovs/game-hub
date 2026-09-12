@@ -7,7 +7,7 @@ interface LoginFormProps {
 export const LoginForm = ({ onLogin }: LoginFormProps) => {
   const [inputName, setInputName] = useState("");
 
-  const handleSubmit = (e: ChangeEvent) => {
+  const handleSubmit = (e: ChangeEvent<HTMLFormElement>) => {
     e.preventDefault();
     void onLogin(inputName);
   };

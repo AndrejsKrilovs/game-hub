@@ -36,6 +36,7 @@ body {
     font-size: 1.1rem;
 }
 
+/* Переиспользование базовых стилей кнопок из shared-components */
 .user-bar {
     display: inline-flex;
     align-items: center;
@@ -59,6 +60,18 @@ body {
 .user-bar .btn {
     width: auto;
     padding: 6px 14px;
+}
+
+.btn-logout {
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--green);
+    border: 1px solid var(--green);
+    font-weight: 700;
+}
+
+.btn-logout:hover {
+    background: var(--green);
+    color: #fff;
 }
 
 .games-grid {
@@ -91,10 +104,12 @@ body {
     opacity: 0.55;
     filter: grayscale(0.4);
 }
+
 .game-icon {
     font-size: 3.2rem;
     line-height: 1;
 }
+
 .game-title {
     font-size: 1.25rem;
     font-weight: 700;
@@ -109,27 +124,17 @@ body {
     font-weight: 700;
     text-transform: uppercase;
 }
+
 .badge-active {
     background: rgba(76, 175, 80, 0.15);
-    color: #4caf50;
-    border: 1px solid #4caf50;
+    color: var(--green);
+    border: 1px solid var(--green);
 }
+
 .badge-soon {
     background: rgba(142, 142, 160, 0.15);
     color: var(--text-muted);
     border: 1px solid var(--text-muted);
-}
-
-.btn-logout {
-    background: rgba(76, 175, 80, 0.15);
-    color: #4caf50;
-    border: 1px solid #4caf50;
-    font-weight: 700;
-}
-
-.btn-logout:hover {
-    background: #4caf50;
-    color: #fff;
 }
 
 .auth-card {
