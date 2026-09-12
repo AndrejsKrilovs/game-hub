@@ -40,7 +40,7 @@ COPY --from=frontend-build /app/chess-frontend/dist ./src/main/resources/static/
 
 RUN chmod +x ./gradlew
 # Отключаем Gradle-таски копирования фронтенда, так как в Java-контейнере нет Node.js/npm
-RUN ./gradlew bootJar -x copyMainFrontend -x copyChessFrontend --no-daemon
+RUN ./gradlew clean bootJar -x copyMainFrontend -x copyChessFrontend --no-daemon
 
 # 3. Минимальный образ для запуска
 FROM eclipse-temurin:21-jre-alpine
