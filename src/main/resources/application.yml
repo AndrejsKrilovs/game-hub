@@ -3,7 +3,7 @@ server:
   address: 0.0.0.0
   servlet:
     session:
-      timeout: 10s
+      timeout: 120s
 
 app:
   session:
