@@ -28,13 +28,15 @@ dependencies {
 
 val sharedFrontendDir = file("shared-frontend")
 val chessFrontendDir = file("chess-frontend")
+val mainFrontendDir = file("main-frontend")
 val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
-
 fun frontendSourceTree(dir: File) = fileTree(dir) {
   exclude("dist", "node_modules", ".vite")
 }
 
-fun registerFrontendModule(name: String, dir: File,
+fun registerFrontendModule(
+  name: String,
+  dir: File,
   dependsOnBuild: TaskProvider<*>? = null,
   staticSubdir: String? = null
 ): TaskProvider<Exec> {
@@ -68,7 +70,8 @@ fun registerFrontendModule(name: String, dir: File,
       description = "Copy game frontend to main directory"
       dependsOn(build)
       from(dir.resolve("dist"))
-      into("src/main/resources/static/$sub")
+      val destPath = if (sub.isEmpty()) "src/main/resources/static" else "src/main/resources/static/$sub"
+      into(file(destPath))
     }
     tasks.named("processResources") { dependsOn(copy) }
   }
@@ -77,11 +80,13 @@ fun registerFrontendModule(name: String, dir: File,
 }
 
 val sharedBuild = registerFrontendModule("Shared", sharedFrontendDir)
+registerFrontendModule("Main", mainFrontendDir, dependsOnBuild = sharedBuild, staticSubdir = "")
 registerFrontendModule("Chess", chessFrontendDir, dependsOnBuild = sharedBuild, staticSubdir = "chess")
 
 tasks.named("clean") {
   doLast {
-    delete(file("src/main/resources/static/chess"))
+    delete(file("src/main/resources/static"))
+    delete(mainFrontendDir.resolve("dist"))
     delete(chessFrontendDir.resolve("dist"))
     delete(sharedFrontendDir.resolve("dist"))
   }
