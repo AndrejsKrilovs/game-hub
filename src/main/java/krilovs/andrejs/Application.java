@@ -1,8 +1,10 @@
 package krilovs.andrejs;
 
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,7 +20,11 @@ import static krilovs.andrejs.SpringSecurityConfig.CHESS_ALLOWED;
 
 @Controller
 @SpringBootApplication
+@RequiredArgsConstructor
+@EnableConfigurationProperties(AppSessionProperties.class)
 public class Application {
+    private final AppSessionProperties sessionProperties;
+
     @GetMapping("/")
     public String home() {
         return "forward:/index.html";
@@ -54,10 +60,13 @@ public class Application {
 
     @ResponseBody
     @GetMapping("/api/me")
-    public ResponseEntity<Map<String, String>> getCurrentUser() {
+    public ResponseEntity<Map<String, Object>> getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            return ResponseEntity.ok(Map.of("username", auth.getName()));
+            return ResponseEntity.ok(Map.of(
+                    "username", auth.getName(),
+                    "inactivityTimeoutMs", sessionProperties.getTimeoutMillis()
+            ));
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();

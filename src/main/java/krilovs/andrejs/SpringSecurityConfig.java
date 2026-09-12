@@ -89,12 +89,22 @@ public class SpringSecurityConfig {
                 )
 
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) ->
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED)
-                        )
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                response.setStatus(HttpServletResponse.SC_FORBIDDEN)
-                        )
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if (request.getRequestURI().startsWith("/chess")) {
+                                response.sendRedirect("/");
+                            }
+                            else {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            }
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            if (request.getRequestURI().startsWith("/chess")) {
+                                response.sendRedirect("/");
+                            }
+                            else {
+                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            }
+                        })
                 )
 
                 .build();

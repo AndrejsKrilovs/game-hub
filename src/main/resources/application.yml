@@ -4,3 +4,7 @@ server:
   servlet:
     session:
       timeout: 10s
+
+app:
+  session:
+    inactivity-timeout-seconds: 120

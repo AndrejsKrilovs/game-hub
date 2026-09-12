@@ -20,7 +20,9 @@ java {
 }
 
 dependencies {
+  compileOnly("org.projectlombok:lombok")
   implementation(project(":chess-backend"))
+  annotationProcessor("org.projectlombok:lombok")
   developmentOnly("org.springframework.boot:spring-boot-devtools")
   implementation("org.springframework.boot:spring-boot-starter-web")
   implementation("org.springframework.boot:spring-boot-starter-security")
