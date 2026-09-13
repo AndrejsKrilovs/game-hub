@@ -46,6 +46,11 @@ fun registerFrontendModule(
   val install = tasks.register<Exec>("npm${name}Install") {
     description = "Installs libraries for registrated game"
     workingDir = dir
+
+    doFirst {
+      delete(dir.resolve("dist"))
+    }
+
     commandLine(npmCommand, "install")
     dependsOnBuild?.let {
       dependsOn(it)
