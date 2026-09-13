@@ -51,7 +51,7 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
 
   const handleConfirmEnd = () => {
     setToast(null);
-    eventBus.emit('END_GAME');
+    eventBus.emit('END_GAME', { message: 'Принудительное завершение игры!' });
   };
 
   const handleClose = () => {

@@ -23,9 +23,7 @@ export class EventBus {
 
   on = (event: string, handler: Handler) => {
     (this.listeners[event] ||= []).push(handler)
-    return () => {
-      this.off(event, handler)
-    }
+    return () => this.off(event, handler)
   }
 }
 

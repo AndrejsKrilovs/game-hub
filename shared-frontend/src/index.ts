@@ -12,5 +12,3 @@ export type { ToastType } from "./components/Toast";
 export { Confetti } from "./components/Confetti";
 
 export { bootstrapGame } from "./bootstrap";
-export { createGameConfig } from "./config";
-export type { GameConfigOptions } from "./config";

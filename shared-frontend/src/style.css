@@ -76,10 +76,8 @@ body {
 }
 
 .btn-home {
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  font-weight: 700;
+  background: #fff;
+  color: var(--bg);
 }
 
 .btn.hidden {

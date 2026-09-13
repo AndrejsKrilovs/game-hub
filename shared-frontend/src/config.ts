@@ -1,4 +1,5 @@
 import type { UserConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export interface GameConfigOptions {
   base: string;
@@ -14,13 +15,14 @@ export const createGameConfig = ({ base, title }: GameConfigOptions): UserConfig
         <title>${title}</title>
     </head>
     <body>
-        <script type="module" src="/src/main.ts"></script>
+        <script type="module" src="/src/main.tsx"></script>
     </body>
 </html>`;
 
   return {
     base,
     plugins: [
+      react(),
       {
         name: 'virtual-html-plugin',
         configureServer(server: any) {
@@ -44,6 +46,9 @@ export const createGameConfig = ({ base, title }: GameConfigOptions): UserConfig
         },
       },
     ],
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
     build: {
       emptyOutDir: true,
       rollupOptions: {

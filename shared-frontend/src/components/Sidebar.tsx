@@ -34,21 +34,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
     }
   };
 
-  // 1. Старт игры / выбор цвета
   useEvent(eventBus, 'OPEN_COLOR_PICKER', () => {
     setIsPlaying(true);
     eventBus.emit('SHOW_COLOR_PICKER');
   });
 
-  // 2. Обработка окончания игры (локально и по WebSocket)
-  useEvent(eventBus, ['GAME_ENDED', 'WS:GAME_ENDED'], (payload: any) => {
+  useEvent(eventBus, ['END_GAME', 'CONFETTI'], (payload: any) => {
     setIsPlaying(false);
     eventBus.emit('TOAST', payload);
     appendHistory({ text: payload?.message ?? payload?.text });
   });
 
-  // 3. Добавление записи в историю (локально и по WebSocket)
-  useEvent(eventBus, ['ADD_HISTORY', 'WS:ADD_HISTORY'], (payload: any) => {
+  useEvent(eventBus, 'ADD_HISTORY', (payload: any) => {
     if (payload?.resetControls) {
       setIsPlaying(false);
     }
@@ -69,7 +66,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
   };
 
   return (
-    <aside className="sidebar">
+    <>
       {!isPlaying ? (
         <>
           <button className="btn btn-start" data-start onClick={handleStart}>
@@ -94,6 +91,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
           readOnly
         />
       </div>
-    </aside>
+    </>
   );
 };

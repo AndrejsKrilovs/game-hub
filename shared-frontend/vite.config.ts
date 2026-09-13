@@ -16,8 +16,11 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
-      output: { assetFileNames: 'index.min.[ext]' }
+      external: [
+        /^react($|\/)/,
+        /^react-dom($|\/)/,
+      ],
+      output: { assetFileNames: 'index.min.[ext]' },
     },
     minify: true,
     sourcemap: false,
