@@ -17,12 +17,15 @@ export class EventBus {
   emit = (event: string, payload?: unknown) =>
     this.listeners[event]?.forEach(h => h(payload))
 
-  off = (event: string, handler: Handler) =>
+  off = (event: string, handler: Handler) => {
     this.listeners[event] = this.listeners[event]?.filter(h => h !== handler) || []
+  }
 
   on = (event: string, handler: Handler) => {
     (this.listeners[event] ||= []).push(handler)
-    return () => this.off(event, handler)
+    return () => {
+      this.off(event, handler)
+    }
   }
 }
 

@@ -31,7 +31,8 @@ dependencies {
 val sharedFrontendDir = file("shared-frontend")
 val chessFrontendDir = file("chess-frontend")
 val mainFrontendDir = file("main-frontend")
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
+else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
 
 fun frontendSourceTree(dir: File) = fileTree(dir) {
   exclude("dist", "node_modules", ".vite")
@@ -48,6 +49,7 @@ fun registerFrontendModule(
     workingDir = dir
 
     doFirst {
+      delete(file("src/main/resources/static"))
       delete(dir.resolve("dist"))
     }
 

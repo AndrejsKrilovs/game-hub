@@ -1,10 +1,7 @@
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
-  servlet:
-    session:
-      timeout: 120s
 
 app:
   session:
-    inactivity-timeout-seconds: 120
+    inactivity-timeout-seconds: 1800 # 30 минут (1800 секунд)

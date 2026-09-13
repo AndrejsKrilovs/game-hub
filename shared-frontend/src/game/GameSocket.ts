@@ -5,7 +5,7 @@ type WSMessage = {
   payload?: unknown
 }
 
-class GameSocket {
+export class GameSocket {
   private ws?: WebSocket
   private initialized = false
   private reconnectTimer?: number
