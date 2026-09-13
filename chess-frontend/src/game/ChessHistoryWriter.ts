@@ -1,33 +1,41 @@
-import { pieceMetadata } from "../board/PieceComponent"
+import { pieceMetadata, PieceColor, PieceName } from '../board/BoardTypes';
 
-class ChessHistoryWriter {
-  writeHistory = (payload: any): string => {
-    if (payload.text) {
-      return String(payload.text)
-    }
-
-    const pieceColor = payload.color === "WHITE" ? "Белые" : "Чёрные"
-
-    if (payload.castlingType) {
-      return `${pieceColor}: ${
-        payload.castlingType === "SHORT"
-          ? "короткая рокировка"
-          : "длинная рокировка"
-      }`
-    }
-
-    const pieceName =
-      pieceMetadata[payload.piece as keyof typeof pieceMetadata]?.name
-      ?? payload.piece
-
-    const stateTextByState: Record<string, string> = {
-      CHECK: " (шах)",
-      CHECKMATE: " (мат)"
-    }
-
-    const stateText = stateTextByState[payload.state ?? ""] ?? ""
-    return `${pieceColor}: ${pieceName} ${payload.from} → ${payload.to}${stateText}`
-  }
+export interface ChessHistoryPayload {
+  text?: string;
+  color?: PieceColor;
+  castlingType?: 'SHORT' | 'LONG';
+  piece?: PieceName;
+  from?: string;
+  to?: string;
+  state?: 'CHECK' | 'CHECKMATE' | string;
 }
 
-export const chessHistoryWriter = new ChessHistoryWriter()
+const STATE_TEXT_MAP: Record<string, string> = {
+  CHECK: ' (шах)',
+  CHECKMATE: ' (мат)',
+};
+
+export const formatChessMove = (payload: ChessHistoryPayload | any): string => {
+  if (!payload) {
+    return '';
+  }
+  if (typeof payload.text === 'string' && payload.text.trim()) {
+    return payload.text;
+  }
+  if (!payload.color || (!payload.castlingType && (!payload.from || !payload.to))) {
+    return '';
+  }
+
+  const pieceColor = payload.color === 'WHITE' ? 'Белые' : 'Чёрные';
+  if (payload.castlingType) {
+    const castlingText =
+      payload.castlingType === 'SHORT' ? 'короткая рокировка' : 'длинная рокировка';
+    return `${pieceColor}: ${castlingText}`;
+  }
+
+  const pieceName =
+    pieceMetadata[payload.piece as keyof typeof pieceMetadata]?.name ?? payload.piece ?? '';
+
+  const stateText = STATE_TEXT_MAP[payload.state ?? ''] ?? '';
+  return `${pieceColor}: ${pieceName} ${payload.from} → ${payload.to}${stateText}`;
+};

@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
+import react from "@vitejs/plugin-react";
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig({
+  plugins: [react()],
   build: {
     emptyOutDir: true,
     lib: {
@@ -14,10 +16,14 @@ export default defineConfig({
       formats: ['es'],
     },
     rollupOptions: {
-      output: { assetFileNames: 'index.min.[ext]' }
+      external: [
+        /^react($|\/)/,
+        /^react-dom($|\/)/,
+      ],
+      output: { assetFileNames: 'index.min.[ext]' },
     },
     minify: true,
     sourcemap: false,
-    cssCodeSplit: false
-  }
+    cssCodeSplit: false,
+  },
 });
