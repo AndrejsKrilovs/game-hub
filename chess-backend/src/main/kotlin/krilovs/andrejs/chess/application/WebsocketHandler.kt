@@ -125,15 +125,8 @@ class WebsocketHandler(
   }
 
   private fun WebSocketSession.handleBotMove(game: GameService, botColor: Color) {
-    if (game.currentTurn != botColor) {
-      println("DEBUG: Пропуск хода бота. Ход: ${game.currentTurn}, Цвет бота: $botColor")
-      return
-    }
-    val bestMove = bot.findBestMove(game)
-    if (bestMove == null) {
-      println("ERROR: ChessBot вернул null! Проверьте BotProperties (maxDepth, timeLimitMs).")
-      return
-    }
+    if (game.currentTurn != botColor) return
+    val bestMove = bot.findBestMove(game) ?: return
     val from = BoardUtils.toSquare(bestMove.from)
     val to = BoardUtils.toSquare(bestMove.to)
 
