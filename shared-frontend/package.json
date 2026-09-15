@@ -1,6 +1,6 @@
 {
   "name": "shared-frontend",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "module",
   "main": "./dist/index.min.js",
   "module": "./dist/index.min.js",
@@ -12,7 +12,8 @@
       "default": "./dist/index.min.js"
     },
     "./config": "./src/config.ts",
-    "./style.css": "./src/style.css"
+    "./style.css": "./src/style.css",
+    "./mobile.css": "./src/mobile.css"
   },
   "files": ["dist", "src"],
   "scripts": {

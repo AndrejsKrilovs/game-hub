@@ -1,15 +1,20 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 :root {
     --bg-overlay: rgba(0, 0, 0, 0.4);
     --panel: #2c2c3e;
     --panel-border: rgba(255, 255, 255, 0.05);
     --accent: #ffd700;
     --text-muted: #8e8ea0;
+    --green: #4caf50;
 }
 
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: grid;
+    place-items: center;
+    margin: 0;
     padding: 20px;
 }
 
@@ -22,29 +27,35 @@ body {
     gap: 36px;
 }
 
+/* Header & User Bar */
 .header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
 }
+
 .header h1 {
     margin: 0 0 10px 0;
     font-size: 2.8rem;
     font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
 }
+
 .header p {
     margin: 0;
     color: var(--text-muted);
     font-size: 1.1rem;
 }
 
-/* Переиспользование базовых стилей кнопок из shared-components */
 .user-bar {
     display: inline-flex;
     align-items: center;
     gap: 16px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
     margin-top: 12px;
 }
 
@@ -62,10 +73,14 @@ body {
     padding: 6px 14px;
 }
 
-.btn-logout {
+/* Buttons & Badges */
+.btn-logout, .badge-active {
     background: rgba(76, 175, 80, 0.15);
     color: var(--green);
     border: 1px solid var(--green);
+}
+
+.btn-logout {
     font-weight: 700;
 }
 
@@ -74,15 +89,35 @@ body {
     color: #fff;
 }
 
+.badge {
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-soon {
+    background: rgba(142, 142, 160, 0.15);
+    color: var(--text-muted);
+    border: 1px solid var(--text-muted);
+}
+
+/* Grid & Cards (Десктоп — 1 ряд) */
 .games-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
+    justify-items: center;
     gap: 20px;
     width: 100%;
+    max-width: 1140px;
 }
 
 .game-card {
+    width: 100%;
+    max-width: 260px;
     background: var(--panel);
+    border: 1px solid var(--panel-border);
     border-radius: 16px;
     padding: 24px 20px;
     display: flex;
@@ -91,7 +126,6 @@ body {
     gap: 16px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    border: 1px solid var(--panel-border);
 }
 
 .game-card:hover:not(.disabled) {
@@ -117,30 +151,21 @@ body {
     text-align: center;
 }
 
-.badge {
-    font-size: 0.7rem;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.badge-active {
-    background: rgba(76, 175, 80, 0.15);
-    color: var(--green);
-    border: 1px solid var(--green);
-}
-
-.badge-soon {
-    background: rgba(142, 142, 160, 0.15);
-    color: var(--text-muted);
-    border: 1px solid var(--text-muted);
-}
-
+/* Auth Form & Input Alignment */
 .auth-card {
+    width: 100%;
     max-width: 360px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-card form {
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .auth-input {
@@ -153,7 +178,7 @@ body {
     color: #fff;
     font-size: 1rem;
     outline: none;
-    box-sizing: border-box;
+    text-align: center;
 }
 
 .auth-input:focus {

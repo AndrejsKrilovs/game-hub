@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { EventBus } from '../game/EventBus';
 import { useEvent } from '../game/useEvent';
 
@@ -16,21 +16,58 @@ interface SidebarProps {
   historyFormatter?: HistoryFormatter;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = defaultHistoryFormatter}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = defaultHistoryFormatter }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [history, setHistory] = useState<string>('');
+  const [historyItems, setHistoryItems] = useState<string[]>([]);
+  const [deviceType, setDeviceType] = useState<'desktop' | 'ipad' | 'mobile'>('desktop');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w <= 600) setDeviceType('mobile');
+      else if (w <= 900) setDeviceType('ipad');
+      else setDeviceType('desktop');
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // 2 колонки только для iPad Mini (ipad), 1 колонка для mobile и desktop
+  const historyText = useMemo(() => {
+    if (deviceType === 'ipad') {
+      const LEFT_COLUMN_WIDTH = 30;
+      const lines: string[] = [];
+
+      for (let i = 0; i < historyItems.length; i += 2) {
+        const whiteMove = historyItems[i];
+        const blackMove = historyItems[i + 1];
+
+        if (blackMove !== undefined) {
+          lines.push(whiteMove.padEnd(LEFT_COLUMN_WIDTH, ' ') + blackMove);
+        }
+        else {
+          lines.push(whiteMove);
+        }
+      }
+      return lines.join('\n');
+    }
+
+    return historyItems.join('\n');
+  }, [historyItems, deviceType]);
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
     }
-  }, [history]);
+  }, [historyText]);
 
   const appendHistory = (payload: any) => {
     const formatted = historyFormatter(payload);
     if (formatted) {
-      setHistory((prev) => prev + formatted + '\n');
+      setHistoryItems((prev) => [...prev, formatted]);
     }
   };
 
@@ -53,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
   });
 
   const handleStart = () => {
-    setHistory('');
+    setHistoryItems([]);
     eventBus.emit('OPEN_COLOR_PICKER');
   };
 
@@ -87,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
         <textarea
           id="game-history"
           ref={textareaRef}
-          value={history}
+          value={historyText}
           readOnly
         />
       </div>

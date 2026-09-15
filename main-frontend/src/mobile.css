@@ -1,0 +1,71 @@
+/* iPad Pro / Мониторы до 1200px — 3 в ряд */
+@media screen and (max-width: 1200px) {
+    .games-grid {
+        grid-template-columns: repeat(3, 1fr);
+        max-width: 880px;
+        gap: 20px;
+    }
+}
+
+/* iPad Mini / Планшеты до 900px — 2 в ряд */
+@media screen and (max-width: 900px) {
+    .games-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 580px;
+        gap: 20px;
+    }
+}
+
+/* Смартфоны до 600px — 1 в ряд */
+@media screen and (max-width: 600px) {
+    body {
+        padding: 12px;
+    }
+
+    .container {
+        gap: 24px;
+    }
+
+    .header h1 {
+        font-size: 2rem;
+        gap: 8px;
+    }
+
+    .header p {
+        font-size: 0.95rem;
+    }
+
+    .user-bar {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .user-bar .btn {
+        width: 100%;
+        max-width: 280px;
+        text-align: center;
+    }
+
+    .games-grid {
+        grid-template-columns: 1fr;
+        max-width: 320px;
+        gap: 16px;
+    }
+
+    .game-card {
+        width: 100%;
+        max-width: 320px;
+        padding: 24px 20px;
+    }
+
+    .game-icon {
+        font-size: 2.8rem;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 320px;
+    }
+}

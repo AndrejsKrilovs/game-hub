@@ -1,4 +1,5 @@
 import "./style.css";
+import "./mobile.css";
 import { createRoot } from "react-dom/client";
 
 import { eventBus } from "./game/EventBus";

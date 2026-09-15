@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { bootstrapGame } from 'shared-frontend';
 import 'shared-frontend/style.css';
+import 'shared-frontend/mobile.css';
 
 import { formatChessMove } from './game/ChessHistoryWriter';
 import { ChessBoard } from './board/ChessBoard';
