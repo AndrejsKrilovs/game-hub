@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component
 
 @Component
 class SearchService(
-  private val game: GameService,
   private val evaluation: EvaluationService,
   private val transpositionTable: TranspositionTable,
   private val positionHash: PositionHashService,
@@ -20,7 +19,7 @@ class SearchService(
   }
 
 
-  fun searchBestMove(maxDepth: Int, timeLimitMs: Long, botColor: Color): SearchResult {
+  fun searchBestMove(game: GameService, maxDepth: Int, timeLimitMs: Long, botColor: Color): SearchResult {
     deadlineMs = System.currentTimeMillis() + timeLimitMs
     var bestResult = SearchResult(move = null, score = 0)
 
@@ -28,6 +27,7 @@ class SearchService(
       if (timeExpired()) break
 
       val result = searchMoves(
+        game = game,
         depth = depth,
         ply = 0,
         alpha = -INF,
@@ -47,12 +47,19 @@ class SearchService(
   private fun timeExpired(): Boolean =
     System.currentTimeMillis() >= deadlineMs
 
-  private fun alphaBeta(depth: Int, ply: Int, alpha: Int, beta: Int, botColor: Color): Int {
+  private fun alphaBeta(
+    game: GameService,
+    depth: Int,
+    ply: Int,
+    alpha: Int,
+    beta: Int,
+    botColor: Color
+  ): Int {
     if (depth == 0) {
-      return quiescence(alpha, beta, botColor)
+      return quiescence(game, alpha, beta, botColor)
     }
 
-    val key = positionHash.key()
+    val key = positionHash.key(game)
     var a = alpha
     var b = beta
     val originalAlpha = alpha
@@ -69,6 +76,7 @@ class SearchService(
     }
 
     val result = searchMoves(
+      game = game,
       depth = depth,
       ply = ply,
       alpha = a,
@@ -96,11 +104,18 @@ class SearchService(
 
     return score
   }
-
-  private fun searchMoves(depth: Int, ply: Int, alpha: Int, beta: Int, botColor: Color, ttMove: IntMove?): SearchResult {
-    val moves = moveOrdering.orderedMoves(ttMove, ply)
+  private fun searchMoves(
+    game: GameService,
+    depth: Int,
+    ply: Int,
+    alpha: Int,
+    beta: Int,
+    botColor: Color,
+    ttMove: IntMove?
+  ): SearchResult {
+    val moves = moveOrdering.orderedMoves(game, ttMove, ply)
     if (moves.isEmpty()) {
-      return SearchResult(move = null, score = terminalOrStaticScore(botColor, ply))
+      return SearchResult(move = null, score = terminalOrStaticScore(game, botColor, ply))
     }
 
     val maximizing = game.currentTurn == botColor
@@ -113,6 +128,7 @@ class SearchService(
       val undo = game.makeMoveInternal(move.from, move.to)
 
       val score = alphaBeta(
+        game = game,
         depth = depth - 1,
         ply = ply + 1,
         alpha = a,
@@ -147,18 +163,23 @@ class SearchService(
     return SearchResult(move = bestMove, score = bestScore)
   }
 
-  private fun terminalOrStaticScore(botColor: Color, ply: Int): Int {
+  private fun terminalOrStaticScore(game: GameService, botColor: Color, ply: Int): Int {
     return when (game.getGameState()) {
       GameState.CHECKMATE -> if (game.currentTurn == botColor) -MATE_SCORE + ply else MATE_SCORE - ply
       GameState.STALEMATE, GameState.DRAW -> 0
-      else -> evaluatePosition(botColor)
+      else -> evaluatePosition(game, botColor)
     }
   }
 
-  private fun quiescence(alpha: Int, beta: Int, botColor: Color): Int {
+  private fun quiescence(
+    game: GameService,
+    alpha: Int,
+    beta: Int,
+    botColor: Color
+  ): Int {
     var a = alpha
     var b = beta
-    val standPat = evaluatePosition(botColor)
+    val standPat = evaluatePosition(game, botColor)
     val maximizing = game.currentTurn == botColor
 
     if (maximizing) {
@@ -171,12 +192,12 @@ class SearchService(
     }
 
     val captures = moveOrdering
-      .orderedMoves(ttMove = null, ply = 0)
+      .orderedMoves(game, ttMove = null, ply = 0)
       .filter { move -> moveOrdering.isCapture(move) }
 
     for (move in captures) {
       val undo = game.makeMoveInternal(move.from, move.to)
-      val score = quiescence(a, b, botColor)
+      val score = quiescence(game, a, b, botColor)
       game.undoMove(undo)
 
       if (maximizing) {
@@ -192,7 +213,7 @@ class SearchService(
     return if (maximizing) a else b
   }
 
-  private fun evaluatePosition(botColor: Color): Int =
+  private fun evaluatePosition(game: GameService, botColor: Color): Int =
     evaluation.evaluate(game.getBoard(), botColor)
 
   companion object {

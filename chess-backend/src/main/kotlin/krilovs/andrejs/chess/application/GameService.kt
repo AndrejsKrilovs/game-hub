@@ -10,9 +10,12 @@ import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
 import krilovs.andrejs.chess.utils.BoardUtils
-import org.springframework.stereotype.Component
+import org.springframework.beans.factory.config.ConfigurableBeanFactory
+import org.springframework.context.annotation.Scope
+import org.springframework.stereotype.Service
 
-@Component
+@Service
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 class GameService(
   private val rules: RuleFacade,
   private val pieceFactory: PieceFactory,
@@ -20,8 +23,8 @@ class GameService(
 ) {
   private val board: Board = Board()
 
-  lateinit var currentTurn: Color
-  lateinit var castlingOption: String
+  var currentTurn: Color = Color.WHITE
+  var castlingOption: String = "-"
 
   fun getBoard(): Board = board
   fun getPiece(square: Int): Piece? = board[square]

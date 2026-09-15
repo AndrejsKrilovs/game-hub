@@ -22,11 +22,10 @@ class MoveOrderingService(private val game: GameService) {
     clearHistory()
   }
 
-  fun orderedMoves(ttMove: IntMove?, ply: Int): List<IntMove> =
+  fun orderedMoves(game: GameService, ttMove: IntMove?, ply: Int): List<IntMove> =
     game.getAllMovePairs()
       .map { (from, to) -> IntMove(from, to) }
       .sortedByDescending { move -> moveScore(move, ttMove, ply) }
-
   fun isCapture(move: IntMove): Boolean = game.getPiece(move.to) != null
 
   fun storeKiller(move: IntMove, ply: Int) {

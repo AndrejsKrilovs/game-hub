@@ -11,6 +11,9 @@ import krilovs.andrejs.chess.utils.BoardUtils
 class GameStateService(private val moveSafety: MoveSafetyService) {
   fun getGameState(board: Board, currentTurn: Color): GameState {
     val kingSquare = BoardUtils.findKing(board, currentTurn)
+    if (kingSquare == -1) {
+      return GameState.CHECKMATE
+    }
 
     val hasMoves = board.getPieces()
       .filter { it.color == currentTurn }

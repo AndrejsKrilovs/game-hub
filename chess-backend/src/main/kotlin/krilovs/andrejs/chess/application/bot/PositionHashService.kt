@@ -11,9 +11,9 @@ import krilovs.andrejs.chess.domain.piece.Rook
 import org.springframework.stereotype.Component
 
 @Component
-class PositionHashService(private val game: GameService) {
+class PositionHashService {
 
-  fun key(): Long {
+  fun key(game: GameService): Long {
     var hash = HASH_OFFSET
 
     for (square in 0..63) {

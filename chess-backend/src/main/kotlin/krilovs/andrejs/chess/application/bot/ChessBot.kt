@@ -7,15 +7,15 @@ import org.springframework.stereotype.Component
 
 @Component
 class ChessBot(
-  private val game: GameService,
   private val search: SearchService,
   private val properties: BotProperties
 ) {
 
-  fun findBestMove(): Move? {
+  fun findBestMove(game: GameService): Move? {
     search.reset()
 
     val result = search.searchBestMove(
+      game = game,
       maxDepth = properties.maxDepth,
       timeLimitMs = properties.timeLimitMs,
       botColor = game.currentTurn
