@@ -6,7 +6,7 @@ export type ToastType = 'info' | 'success' | 'error';
 type ColorType = 'WHITE' | 'BLACK';
 
 type ToastState =
-  | { kind: 'color' }
+  | { kind: 'color'; isManualPlayer: boolean }
   | { kind: 'end' }
   | { kind: 'game_over'; text: string }
   | { kind: 'message'; text: string; type: ToastType }
@@ -21,11 +21,13 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
   const [selectedColor, setSelectedColor] = useState<ColorType | null>(null);
 
   useEffect(() => {
-    if (toast?.kind === 'message') {
+    const { kind } = toast || {};
+
+    if (kind === 'message') {
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
     }
-    if (toast?.kind === 'game_over') {
+    if (kind === 'game_over') {
       const timer = setTimeout(() => {
         setToast(null);
         eventBus.emit('WS_DISCONNECT');
@@ -34,37 +36,31 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
     }
   }, [toast, eventBus]);
 
-  useEvent(eventBus, 'SHOW_COLOR_PICKER', () => {
+  useEvent(eventBus, 'SHOW_COLOR_PICKER', ({ isManualPlayer }: any = {}) => {
     setSelectedColor(null);
-    setToast({ kind: 'color' });
+    setToast({ kind: 'color', isManualPlayer: Boolean(isManualPlayer) });
   });
 
   useEvent(eventBus, 'SHOW_END_CONFIRM', () => {
     setToast({ kind: 'end' });
   });
 
-  useEvent(eventBus, 'GAME_ENDED', (payload: any) => {
-    setToast({
-      kind: 'game_over',
-      text: payload.message ?? payload.text,
-    });
+  useEvent(eventBus, 'GAME_ENDED', ({ message, text }: any = {}) => {
+    setToast({ kind: 'game_over', text: message ?? text });
   });
 
-  useEvent(eventBus, 'TOAST', (payload: any) => {
-    setToast({
-      kind: 'message',
-      text: payload?.message ?? '',
-      type: payload?.type ?? 'info',
-    });
+  useEvent(eventBus, 'TOAST', ({ message = '', type = 'info' }: any = {}) => {
+    setToast({ kind: 'message', text: message, type });
   });
 
-  if (!toast) {
-    return null;
-  }
+  if (!toast) return null;
+  const { kind } = toast;
 
   const handleStartGame = () => {
-    if (!selectedColor) return;
-    eventBus.emit('START_GAME', { color: selectedColor });
+    if (!selectedColor || toast.kind !== 'color') return;
+    const { isManualPlayer } = toast;
+    const eventName = isManualPlayer ? 'SEND_PLAYER_COLOR' : 'START_GAME';
+    eventBus.emit(eventName, { color: selectedColor });
     setToast(null);
   };
 
@@ -77,11 +73,11 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
     setToast(null);
   };
 
-  const typeClass = toast.kind === 'message' ? toast.type : 'info';
+  const typeClass = kind === 'message' ? toast.type : 'info';
 
   return (
     <div className={`toast ${typeClass} show`}>
-      {toast.kind === 'color' && (
+      {kind === 'color' && (
         <div className="toast-content">
           <div>Выберите цвет фигур</div>
           <div className="toast-actions">
@@ -104,7 +100,7 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
         </div>
       )}
 
-      {toast.kind === 'end' && (
+      {kind === 'end' && (
         <div className="toast-content">
           <div>Завершить игру досрочно?</div>
           <div className="toast-actions">
@@ -118,7 +114,7 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
         </div>
       )}
 
-      {toast.kind === 'game_over' && (
+      {kind === 'game_over' && (
         <div className="toast-content">
           <div className="toast-message">
             <div className="toast-text">{toast.text}</div>
@@ -126,7 +122,7 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
         </div>
       )}
 
-      {toast.kind === 'message' && (
+      {kind === 'message' && (
         <div className="toast-content">
           <div className="toast-message">
             <span>ℹ️</span>

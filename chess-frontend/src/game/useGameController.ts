@@ -39,6 +39,14 @@ export function useGameController(eventBus: EventBus) {
       })
     );
 
+    const generateLink$ = listen<StartGamePayload>('SEND_PLAYER_COLOR').pipe(
+      tap(({ color }) => {
+        selectedCellRef.current = null;
+        lastMoveRef.current = null;
+        eventBus.emit('WS_SEND', { type: 'SEND_PLAYER_COLOR', payload: { color } });
+      })
+    );
+
     const cellClick$ = listen<CellClickPayload>('CELL_CLICK').pipe(
       tap(({ cord }) => {
         const currentSelected = selectedCellRef.current;
@@ -131,7 +139,8 @@ export function useGameController(eventBus: EventBus) {
       wsGameEnded$,
       wsMoves$,
       wsError$,
-      wsState$
+      wsState$,
+      generateLink$
     ).subscribe();
 
     return () => subscription.unsubscribe();

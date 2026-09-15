@@ -37,6 +37,14 @@ body {
 
   background: var(--panel);
   color: var(--text);
+  box-sizing: border-box;
+}
+
+.sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
 }
 
 #app {
@@ -47,7 +55,7 @@ body {
 }
 
 #app label {
-	color: var(--text);
+  color: var(--text);
 }
 
 .btn {
@@ -65,7 +73,7 @@ body {
   filter: brightness(1.1);
 }
 
-.btn-start {
+.btn-start, .btn-challenge {
   background: var(--green);
   color: #fff;
 }
