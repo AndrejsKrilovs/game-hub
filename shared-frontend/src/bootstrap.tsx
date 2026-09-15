@@ -52,12 +52,6 @@ const lockBrowserNavigation = (gameName: GameName) => {
   });
 };
 
-const connectWebSocket = (gameName: GameName) => {
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${wsProtocol}//${window.location.host}/${gameName}/ws`;
-  eventBus.emit("WS_CONNECT", wsUrl);
-};
-
 export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryFormatter) => {
   ensureBaseLayout();
   document.title = initCap(gameName);
@@ -68,7 +62,7 @@ export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryForm
   }
   const sidebarRoot = createRoot(sidebarEl);
   sidebarRoot.render(
-    <Sidebar eventBus={eventBus} historyFormatter={historyFormatter} />
+    <Sidebar eventBus={eventBus} gameName={gameName} historyFormatter={historyFormatter} />
   );
 
   const overlayEl = document.getElementById("shared-ui-overlay");
@@ -89,7 +83,6 @@ export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryForm
   }
 
   gameSocket(eventBus, gameName);
-  connectWebSocket(gameName);
   lockBrowserNavigation(gameName);
   return { eventBus, appContainer, sidebarRoot, overlayRoot };
 };

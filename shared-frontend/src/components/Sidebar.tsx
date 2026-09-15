@@ -13,10 +13,11 @@ const defaultHistoryFormatter: HistoryFormatter = (payload) => {
 
 interface SidebarProps {
   eventBus: EventBus;
+  gameName: string;
   historyFormatter?: HistoryFormatter;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = defaultHistoryFormatter }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ eventBus, gameName, historyFormatter = defaultHistoryFormatter }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [historyItems, setHistoryItems] = useState<string[]>([]);
   const [deviceType, setDeviceType] = useState<'desktop' | 'ipad' | 'mobile'>('desktop');
@@ -71,25 +72,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ eventBus, historyFormatter = d
     }
   };
 
+  const connectWs = () => {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${window.location.host}/${gameName}/ws`;
+    eventBus.emit('WS_CONNECT', wsUrl);
+  };
+
   useEvent(eventBus, 'OPEN_COLOR_PICKER', () => {
     setIsPlaying(true);
     eventBus.emit('SHOW_COLOR_PICKER');
   });
 
-  useEvent(eventBus, ['END_GAME', 'CONFETTI'], (payload: any) => {
+  useEvent(eventBus, 'GAME_ENDED', (payload: any) => {
     setIsPlaying(false);
-    eventBus.emit('TOAST', payload);
     appendHistory({ text: payload?.message ?? payload?.text });
   });
 
   useEvent(eventBus, 'ADD_HISTORY', (payload: any) => {
     if (payload?.resetControls) {
       setIsPlaying(false);
+      eventBus.emit('WS_DISCONNECT');
     }
     appendHistory(payload);
   });
 
   const handleStart = () => {
+    connectWs();
     setHistoryItems([]);
     eventBus.emit('OPEN_COLOR_PICKER');
   };

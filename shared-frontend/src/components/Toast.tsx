@@ -5,7 +5,12 @@ import { useEvent } from '../game/useEvent';
 export type ToastType = 'info' | 'success' | 'error';
 type ColorType = 'WHITE' | 'BLACK';
 
-type ToastState = | { kind: 'color' } | { kind: 'end' } | { kind: 'message'; text: string; type: ToastType } | null;
+type ToastState =
+  | { kind: 'color' }
+  | { kind: 'end' }
+  | { kind: 'game_over'; text: string }
+  | { kind: 'message'; text: string; type: ToastType }
+  | null;
 
 interface ToastProps {
   eventBus: EventBus;
@@ -20,7 +25,14 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [toast]);
+    if (toast?.kind === 'game_over') {
+      const timer = setTimeout(() => {
+        setToast(null);
+        eventBus.emit('WS_DISCONNECT');
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast, eventBus]);
 
   useEvent(eventBus, 'SHOW_COLOR_PICKER', () => {
     setSelectedColor(null);
@@ -29,6 +41,13 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
 
   useEvent(eventBus, 'SHOW_END_CONFIRM', () => {
     setToast({ kind: 'end' });
+  });
+
+  useEvent(eventBus, 'GAME_ENDED', (payload: any) => {
+    setToast({
+      kind: 'game_over',
+      text: payload.message ?? payload.text,
+    });
   });
 
   useEvent(eventBus, 'TOAST', (payload: any) => {
@@ -51,7 +70,7 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
 
   const handleConfirmEnd = () => {
     setToast(null);
-    eventBus.emit('END_GAME', { message: 'Принудительное завершение игры!' });
+    eventBus.emit('END_GAME');
   };
 
   const handleClose = () => {
@@ -95,6 +114,14 @@ export const Toast: React.FC<ToastProps> = ({ eventBus }) => {
             <button className="btn btn-end" onClick={handleClose}>
               Нет
             </button>
+          </div>
+        </div>
+      )}
+
+      {toast.kind === 'game_over' && (
+        <div className="toast-content">
+          <div className="toast-message">
+            <div className="toast-text">{toast.text}</div>
           </div>
         </div>
       )}

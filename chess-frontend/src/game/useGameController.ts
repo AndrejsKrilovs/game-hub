@@ -70,8 +70,11 @@ export function useGameController(eventBus: EventBus) {
       })
     );
 
-    const wsGameEnded$ = listen('WS:GAME_ENDED').pipe(
-      tap((payload) => eventBus.emit('GAME_ENDED', payload))
+    const wsGameEnded$ = listen<{ message?: string } | string>('WS:GAME_ENDED').pipe(
+      tap((payload) => {
+        const message = typeof payload === 'object' ? payload?.message : payload;
+        eventBus.emit('GAME_ENDED', { message: message ?? 'Партия завершена' });
+      })
     );
 
     const wsMoves$ = listen<{ moves: any[] }>('WS:MOVES').pipe(

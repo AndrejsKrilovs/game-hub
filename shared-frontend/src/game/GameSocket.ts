@@ -27,10 +27,6 @@ export class GameSocket {
     })
 
     this.bus.on("GAME_EXIT", async () => {
-      this.shouldReconnect = false
-      this.stopReconnect()
-      this.close()
-
       await fetch(`/games/${this.game}/exit`, {
         method: "POST",
         credentials: "same-origin"
