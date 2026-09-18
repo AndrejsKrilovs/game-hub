@@ -184,6 +184,14 @@ body {
   flex: 1;
 }
 
+.toast-actions-vertical {
+  flex-direction: column;
+}
+
+.toast-actions-vertical .btn {
+  width: 100%;
+}
+
 .toast.info .toast-content { border-left: 4px solid #2d6cdf; }
 .toast.success .toast-content { border-left: 4px solid #2ea043; }
 .toast.error .toast-content { border-left: 4px solid #d73a49; }

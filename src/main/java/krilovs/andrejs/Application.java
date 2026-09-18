@@ -11,6 +11,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.Map;
@@ -37,11 +38,18 @@ public class Application {
     }
 
     @GetMapping({"/chess", "/chess/"})
-    public String chess(HttpSession session) {
+    public String chess(HttpSession session, @RequestParam(required = false) String gameSessionId) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+
+        var authenticated = auth != null
+                && auth.isAuthenticated()
+                && !"anonymousUser".equals(auth.getPrincipal());
+
         boolean allowed = Boolean.TRUE.equals(session.getAttribute(CHESS_ALLOWED));
         boolean active = Boolean.TRUE.equals(session.getAttribute(CHESS_ACTIVE));
+        boolean inviteLink = gameSessionId != null && !gameSessionId.isBlank();
 
-        if (!allowed && !active) {
+        if (!authenticated || (!allowed && !active && !inviteLink)) {
             return "redirect:/";
         }
 

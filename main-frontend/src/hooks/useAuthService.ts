@@ -8,57 +8,93 @@ interface UserResponse {
   inactivityTimeoutMs: number;
 }
 
-const TOAST_STORAGE_KEY = "session_expired_toast";
+interface AuthState {
+  username: string | null;
+  inactivityTimeoutMs: number;
+}
 
+const TOAST_STORAGE_KEY = "session_expired_toast";
+const showToast = (message: string, type: "info" | "success" | "error" = "error") => {
+  eventBus.emit("TOAST", { message, type });
+};
+const redirectAfterLoginIfNeeded = () => {
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+    return null;
+  }
+  if (redirect) {
+    window.location.replace(redirect);
+  }
+};
 export const useAuthService = () => {
-  const [username, setUsername] = useState<string | null>(null);
-  const [inactivityTimeoutMs, setInactivityTimeoutMs] = useState<number>(0);
+  const [authState, setAuthState] = useState<AuthState>({
+    username: null,
+    inactivityTimeoutMs: 0,
+  });
+
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+
+  const setAuthenticatedUser = useCallback((user: UserResponse) => {
+    setAuthState({ username: user.username,  inactivityTimeoutMs: user.inactivityTimeoutMs ?? 0 });
+  }, []);
+
+  const clearAuthenticatedUser = useCallback(() => {
+    setAuthState({ username: null, inactivityTimeoutMs: 0 });
+  }, []);
 
   useEffect(() => {
     const pendingMessage = sessionStorage.getItem(TOAST_STORAGE_KEY);
-    if (pendingMessage) {
-      const timerId = setTimeout(() => {
-        eventBus.emit("TOAST", { message: pendingMessage, type: "error" });
-        sessionStorage.removeItem(TOAST_STORAGE_KEY);
-      }, 100);
-
-      return () => clearTimeout(timerId);
+    if (!pendingMessage) {
+      return;
     }
+
+    sessionStorage.removeItem(TOAST_STORAGE_KEY);
+    const timerId = window.setTimeout(() => showToast(pendingMessage), 100);
+    return () => window.clearTimeout(timerId);
   }, []);
 
-  const handleSessionExpired = useCallback((message: string) => {
-    setUsername(null);
-    if (window.location.pathname !== "/") {
-      sessionStorage.setItem(TOAST_STORAGE_KEY, message);
-      window.location.replace("/");
-    }
-    else {
-      eventBus.emit("TOAST", { message, type: "error" });
-    }
-  }, []);
+  const handleSessionExpired = useCallback(
+    (message: string) => {
+      clearAuthenticatedUser();
+      if (window.location.pathname !== "/") {
+        sessionStorage.setItem(TOAST_STORAGE_KEY, message);
+        window.location.replace("/");
+        return;
+      }
+
+      showToast(message);
+    },
+    [clearAuthenticatedUser]
+  );
 
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        const url = error.config?.url;
+        if (
+          axios.isAxiosError(error) &&
+          error.response?.status === 401 &&
+          url !== "/api/me" &&
+          url !== "/api/login"
+        ) {
           handleSessionExpired("Сессия истекла.");
         }
         return Promise.reject(error);
       }
     );
 
-    axios.get<UserResponse>("/api/me")
+    axios
+      .get<UserResponse>("/api/me")
       .then((res) => {
-        setUsername(res.data.username);
-        setInactivityTimeoutMs(res.data.inactivityTimeoutMs ?? 0);
+        setAuthenticatedUser(res.data);
+        redirectAfterLoginIfNeeded();
       })
-      .catch(() => setUsername(null))
+      .catch(clearAuthenticatedUser)
       .finally(() => setIsAuthChecking(false));
 
     return () => axios.interceptors.response.eject(interceptor);
-  }, [handleSessionExpired]);
+  }, [handleSessionExpired, setAuthenticatedUser, clearAuthenticatedUser]);
 
   const handleInactivityTimeout = useCallback(() => {
     axios.post("/api/logout").finally(() => {
@@ -66,28 +102,25 @@ export const useAuthService = () => {
     });
   }, [handleSessionExpired]);
 
-  useInactivityTimer(inactivityTimeoutMs, handleInactivityTimeout, Boolean(username));
+  useInactivityTimer(authState.inactivityTimeoutMs, handleInactivityTimeout, Boolean(authState.username));
 
   const login = async (name: string) => {
     const params = new URLSearchParams({ username: name, password: "" });
     await axios.post("/api/login", params);
 
     const { data } = await axios.get<UserResponse>("/api/me");
-    setInactivityTimeoutMs(data.inactivityTimeoutMs ?? 0);
-    setUsername(name);
+    setAuthenticatedUser(data);
+    redirectAfterLoginIfNeeded();
   };
 
   const logout = async () => {
-    try {
-      await axios.post("/api/logout");
-    }
-    finally {
-      setUsername(null);
+    axios.post("/api/logout").finally(() => {
+      clearAuthenticatedUser();
       if (window.location.pathname !== "/") {
         window.location.replace("/");
       }
-    }
+    });
   };
 
-  return { username, isAuthChecking, login, logout };
+  return { username: authState.username, isAuthChecking, login, logout };
 };

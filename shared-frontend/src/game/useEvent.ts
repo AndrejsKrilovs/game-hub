@@ -1,25 +1,21 @@
-import { useEffect, useRef } from 'react';
-import { EventBus } from './EventBus';
+import { useEffect, useMemo, useRef } from 'react';
+import type { EventBus, EventPattern } from './EventBus';
+import { toEventKey } from './EventBus';
 
-type EventPattern = string | string[];
-
-export function useEvent<T = any>(
-  eventBus: EventBus,
-  event: EventPattern,
-  handler: (payload: T) => void
-) {
+export const useEvent = <T = unknown>(eventBus: EventBus, event: EventPattern, handler: (payload: T) => void): void => {
   const savedHandler = useRef(handler);
+  const eventKey = useMemo(() => toEventKey(event), [event]);
 
   useEffect(() => {
     savedHandler.current = handler;
   }, [handler]);
 
   useEffect(() => {
-    const eventList = Array.isArray(event) ? event : [event];
-    const unsubscribers = eventList.map((e) =>
-      eventBus.on(e, (payload) => savedHandler.current(payload as T))
-    );
+    const eventList = eventKey.split('|').filter(Boolean);
+    const subscription = eventBus.observePattern<T>(eventList).subscribe((payload) => {
+      savedHandler.current(payload);
+    });
 
-    return () => unsubscribers.forEach((unsub) => unsub());
-  }, [eventBus, Array.isArray(event) ? event.join(',') : event]);
-}
+    return () => subscription.unsubscribe();
+  }, [eventBus, eventKey]);
+};

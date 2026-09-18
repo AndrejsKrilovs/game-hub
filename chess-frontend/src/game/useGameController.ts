@@ -16,7 +16,7 @@ interface WsStatePayload {
   pieces: any[];
 }
 
-export function useGameController(eventBus: EventBus) {
+export const useGameController = (eventBus: EventBus) => {
   const selectedCellRef = useRef<string | null>(null);
   const lastMoveRef = useRef<any | null>(null);
 
@@ -36,6 +36,25 @@ export function useGameController(eventBus: EventBus) {
         selectedCellRef.current = null;
         lastMoveRef.current = null;
         eventBus.emit('WS_SEND', { type: 'START_GAME', payload: { color } });
+      })
+    );
+
+    const invite$ = listen<StartGamePayload>('INVITE').pipe(
+      tap(({ color }) => {
+        selectedCellRef.current = null;
+        lastMoveRef.current = null;
+        eventBus.emit('WS_SEND', { type: 'INVITE', payload: { color } });
+      })
+    );
+
+    const wsInviteCreated$ = listen<{ inviteUrl: string }>('WS:INVITE_CREATED').pipe(
+      tap(({ inviteUrl }) => {
+        navigator.clipboard?.writeText(inviteUrl)
+
+        eventBus.emit('TOAST', {
+          message: `Ссылка приглашения скопирована: ${inviteUrl}`,
+          type: 'success',
+        })
       })
     );
 
@@ -88,6 +107,15 @@ export function useGameController(eventBus: EventBus) {
       })
     );
 
+    const wsWaitingForOpponent$ = listen<{ message?: string }>('WS:WAITING_FOR_OPPONENT').pipe(
+      tap(({ message }) => {
+        eventBus.emit('TOAST', {
+          message: message ?? 'Ожидаем подключения второго игрока...',
+          type: 'info',
+        });
+      })
+    );
+
     const wsState$ = listen<WsStatePayload>('WS:STATE').pipe(
       tap(({ state, turn, pieces }) => {
         eventBus.emit('UPDATE_BOARD', { turn, pieces });
@@ -131,7 +159,10 @@ export function useGameController(eventBus: EventBus) {
       wsGameEnded$,
       wsMoves$,
       wsError$,
-      wsState$
+      wsState$,
+      invite$,
+      wsInviteCreated$,
+      wsWaitingForOpponent$
     ).subscribe();
 
     return () => subscription.unsubscribe();
