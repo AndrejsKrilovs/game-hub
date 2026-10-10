@@ -1,3 +1,8 @@
+import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.Sync
+import org.gradle.api.tasks.Delete
+import org.gradle.api.tasks.TaskProvider
+
 plugins {
   java
   id("org.springframework.boot") version "3.5.13"
@@ -40,31 +45,35 @@ fun frontendSourceTree(dir: File) = fileTree(dir) {
 fun registerFrontendModule(
   name: String,
   dir: File,
-  dependsOnBuild: TaskProvider<*>? = null,
-  staticSubdir: String? = null
+  dependsOnBuild: TaskProvider<Exec>? = null
 ): TaskProvider<Exec> {
   val install = tasks.register<Exec>("npm${name}Install") {
     description = "Installs libraries for registrated game"
     workingDir = dir
-
-    doFirst {
-      delete(dir.resolve("dist"))
-    }
-
     commandLine(npmCommand, "install")
     dependsOnBuild?.let {
       dependsOn(it)
     }
 
     inputs.file(dir.resolve("package.json"))
+    val packageLock = dir.resolve("package-lock.json")
+    if (packageLock.exists()) {
+      inputs.file(packageLock)
+    }
+
     outputs.dir(dir.resolve("node_modules"))
   }
 
   val build = tasks.register<Exec>("npm${name}Build") {
-    description = "Builds registered game"
+    description = "Builds $name frontend"
     workingDir = dir
-    commandLine(npmCommand, "run", "build")
     dependsOn(install)
+
+    doFirst {
+      delete(dir.resolve("dist"))
+    }
+
+    commandLine(npmCommand, "run", "build")
     inputs.files(frontendSourceTree(dir))
     dependsOnBuild?.let {
       inputs.dir(sharedFrontendDir.resolve("dist"))
@@ -73,29 +82,49 @@ fun registerFrontendModule(
     outputs.dir(dir.resolve("dist"))
   }
 
-  staticSubdir?.let { sub ->
-    val copy = tasks.register<Copy>("copy${name}Frontend") {
-      description = "Copy game frontend to main directory"
-      dependsOn(build)
-      from(dir.resolve("dist"))
-      val destPath = if (sub.isEmpty()) "src/main/resources/static" else "src/main/resources/static/$sub"
-      into(file(destPath))
-    }
-    tasks.named("processResources") { dependsOn(copy) }
-  }
-
   return build
 }
 
-val sharedBuild = registerFrontendModule("Shared", sharedFrontendDir)
-registerFrontendModule("Main", mainFrontendDir, dependsOnBuild = sharedBuild, staticSubdir = "")
-registerFrontendModule("Chess", chessFrontendDir, dependsOnBuild = sharedBuild, staticSubdir = "chess")
+val sharedBuild = registerFrontendModule(
+  name = "Shared",
+  dir = sharedFrontendDir
+)
 
-tasks.named("clean") {
-  doLast {
-    delete(file("src/main/resources/static"))
-    delete(mainFrontendDir.resolve("dist"))
-    delete(chessFrontendDir.resolve("dist"))
-    delete(sharedFrontendDir.resolve("dist"))
+val mainBuild = registerFrontendModule(
+  name = "Main",
+  dir = mainFrontendDir,
+  dependsOnBuild = sharedBuild
+)
+
+val chessBuild = registerFrontendModule(
+  name = "Chess",
+  dir = chessFrontendDir,
+  dependsOnBuild = sharedBuild
+)
+
+val syncFrontendStatic = tasks.register<Sync>("syncFrontendStatic") {
+  description = "Syncs built frontend files to Spring static resources"
+
+  dependsOn(mainBuild)
+  dependsOn(chessBuild)
+
+  into(file("src/main/resources/static"))
+  from(mainFrontendDir.resolve("dist")) {
+    into("")
   }
+
+  from(chessFrontendDir.resolve("dist")) {
+    into("chess")
+  }
+}
+
+tasks.named("processResources") {
+  dependsOn(syncFrontendStatic)
+}
+
+tasks.named<Delete>("clean") {
+  delete(file("src/main/resources/static"))
+  delete(mainFrontendDir.resolve("dist"))
+  delete(chessFrontendDir.resolve("dist"))
+  delete(sharedFrontendDir.resolve("dist"))
 }
