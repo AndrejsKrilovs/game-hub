@@ -11,8 +11,10 @@ server:
 
 app:
   session:
-    inactivity-timeout-seconds: 1800 # 30 минут (1800 секунд)
+    inactivity-timeout-seconds: 360 # 6 минут (360 секунд)
 
   websocket:
+    idle-timeout-seconds: 300 # сокет без сообщений (клиент шлёт PING каждые 30 с) закрывается
+    empty-game-ttl-seconds: 60 # время жизни приглашённой игры без подключённых игроков
     # Список разрешённых Origin через запятую (пусто = только same-origin), например для dev: http://localhost:5173
     allowed-origins: ${WS_ALLOWED_ORIGINS:}

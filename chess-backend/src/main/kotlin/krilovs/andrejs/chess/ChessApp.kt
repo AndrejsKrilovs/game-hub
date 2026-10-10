@@ -16,7 +16,9 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 class ChessApp(
   private val handler: WebsocketHandler,
   @param:Value($$"${app.websocket.allowed-origins:}")
-  private val allowedOrigins: List<String>
+  private val allowedOrigins: List<String>,
+  @param:Value($$"${app.websocket.idle-timeout-seconds:360}")
+  private val idleTimeoutSeconds: Long
 ) : WebSocketConfigurer {
 
   override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
@@ -34,7 +36,7 @@ class ChessApp(
   @Bean
   fun createWebSocketContainer(): ServletServerContainerFactoryBean {
     val container = ServletServerContainerFactoryBean()
-    container.maxSessionIdleTimeout = 15 * 60 * 1000L
+    container.maxSessionIdleTimeout = idleTimeoutSeconds * 1000L
     container.asyncSendTimeout = 5 * 1000L
     return container
   }

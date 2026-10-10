@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { filter, fromEvent, merge, Subscription, tap, timer } from 'rxjs';
+import { filter, fromEvent, interval, merge, Subscription, switchMap, tap, timer } from 'rxjs';
 
 import type { EventBus } from './EventBus';
 import { APP_EVENTS } from './events';
@@ -10,6 +10,7 @@ type WSMessage = {
 };
 
 const RECONNECT_DELAY_MS = 2000;
+const KEEP_ALIVE_INTERVAL_MS = 30000;
 
 const isNonBlankString = (value: unknown): value is string => {
   return typeof value === 'string' && value.trim().length > 0;
@@ -104,6 +105,11 @@ export class GameSocket {
           this.stopReconnect();
           this.bus.emit(APP_EVENTS.wsOpen);
         })
+      ),
+
+      fromEvent(socket, 'open').pipe(
+        switchMap(() => interval(KEEP_ALIVE_INTERVAL_MS)),
+        tap(() => this.send({ type: 'PING' }))
       ),
 
       fromEvent(socket, 'close').pipe(

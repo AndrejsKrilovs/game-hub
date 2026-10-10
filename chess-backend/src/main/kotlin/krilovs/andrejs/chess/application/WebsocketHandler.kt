@@ -10,6 +10,7 @@ import krilovs.andrejs.chess.dto.PromotionResult
 import krilovs.andrejs.chess.utils.BoardUtils
 import jakarta.annotation.PreDestroy
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
@@ -27,7 +28,9 @@ import java.util.concurrent.TimeUnit
 class WebsocketHandler(
   private val mapper: ObjectMapper,
   private val gameServiceProvider: ObjectProvider<GameService>,
-  private val bot: ChessBot
+  private val bot: ChessBot,
+  @param:Value($$"${app.websocket.empty-game-ttl-seconds:60}")
+  private val emptyGameTtlSeconds: Long
 ) : TextWebSocketHandler() {
 
   private companion object {
@@ -37,6 +40,7 @@ class WebsocketHandler(
     private const val MAKE_MOVE = "MAKE_MOVE"
     private const val START_GAME = "START_GAME"
     private const val END_GAME = "END_GAME"
+    private const val PING = "PING"
     private const val INVITE = "INVITE"
 
     private const val STATE = "STATE"
@@ -49,7 +53,6 @@ class WebsocketHandler(
     private const val PLAYER_COLOR = "PLAYER_COLOR"
 
     private const val MAX_PLAYERS = 2
-    private const val EMPTY_INVITE_TTL_MINUTES = 10L
 
     private const val START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   }
@@ -116,6 +119,7 @@ class WebsocketHandler(
       START_GAME -> session.requirePayload(payload)?.let { session.handleStartGame(it) }
       INVITE -> session.requirePayload(payload)?.let { session.handleInvite(it) }
       END_GAME -> session.handleEndGame()
+      PING -> Unit
       else -> session.sendError("Неизвестный тип сообщения: $type")
     }
   }
@@ -165,7 +169,7 @@ class WebsocketHandler(
     val task = cleanupExecutor.schedule({
       cleanupTasks.remove(gameSessionId)
       if (openSessionsCount(gameSessionId) == 0) removeGame(gameSessionId)
-    }, EMPTY_INVITE_TTL_MINUTES, TimeUnit.MINUTES)
+    }, emptyGameTtlSeconds, TimeUnit.SECONDS)
 
     cleanupTasks.put(gameSessionId, task)?.cancel(false)
   }
