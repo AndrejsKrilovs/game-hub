@@ -3,7 +3,8 @@ import { EventBus } from 'shared-frontend';
 import { PieceType } from './BoardTypes';
 import { BoardCell } from './BoardCell';
 import { useBoardState } from './useBoardState';
-import { useGameController } from '../game/useGameController';
+import { useChessController } from '../game/useChessController';
+import { CHESS_EVENTS } from '../events';
 
 interface ChessBoardProps {
   eventBus: EventBus;
@@ -13,7 +14,7 @@ const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const RANKS = [8, 7, 6, 5, 4, 3, 2, 1];
 
 export const ChessBoard: React.FC<ChessBoardProps> = ({ eventBus }) => {
-  useGameController(eventBus);
+  useChessController(eventBus);
 
   const { perspective, pieces, highlights, isFinished, isStarted } = useBoardState(eventBus);
 
@@ -32,6 +33,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({ eventBus }) => {
     pieces.forEach((p) => map.set(p.coordinates, p));
     return map;
   }, [pieces]);
+
   if (!isStarted) {
     return null;
   }
@@ -52,7 +54,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({ eventBus }) => {
               showFileCoord={rIndex === 7}
               showRankCoord={fIndex === 0}
               piece={pieceMap.get(coord)}
-              onClick={() => eventBus.emit('CELL_CLICK', { cord: coord })}
+              onClick={() => eventBus.emit(CHESS_EVENTS.cellClick, { coord })}
             />
           );
         })

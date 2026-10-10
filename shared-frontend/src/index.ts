@@ -6,6 +6,9 @@ export { APP_EVENTS } from './game/events';
 export { GameSocket, gameSocket } from './game/GameSocket';
 
 export { useEvent } from './game/useEvent';
+export { sendWsCommand } from './game/sendWsCommand';
+export { useEventReducer } from './game/useEventReducer';
+export type { EventReducerBinding } from './game/useEventReducer';
 
 export { Sidebar } from './components/sidebar/Sidebar';
 export type { HistoryFormatter } from './components/sidebar/Sidebar';

@@ -9,6 +9,9 @@ export const APP_EVENTS = {
 
   wsState: 'WS:STATE',
   wsServerError: 'WS:ERROR',
+  wsGameEnded: 'WS:GAME_ENDED',
+  wsInviteCreated: 'WS:INVITE_CREATED',
+  wsWaitingForOpponent: 'WS:WAITING_FOR_OPPONENT',
 
   openColorPicker: 'OPEN_COLOR_PICKER',
   showColorPicker: 'SHOW_COLOR_PICKER',

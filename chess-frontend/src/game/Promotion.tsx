@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { EventBus, useEvent } from 'shared-frontend';
+import { EventBus, sendWsCommand, useEvent } from 'shared-frontend';
+import { CHESS_EVENTS } from '../events';
 import { pieceMetadata, PieceName, PieceColor } from '../board/BoardTypes';
 
 export interface PromotionMove {
@@ -21,7 +22,7 @@ interface PromotionModalProps {
 export const PromotionModal: React.FC<PromotionModalProps> = ({ eventBus }) => {
   const [data, setData] = useState<PromotionPayload | null>(null);
 
-  useEvent(eventBus, 'WS:PROMOTION', (payload: PromotionPayload) => {
+  useEvent(eventBus, CHESS_EVENTS.wsPromotion, (payload: PromotionPayload) => {
     if (payload?.move && payload?.availablePieces) {
       setData(payload);
     }
@@ -32,10 +33,7 @@ export const PromotionModal: React.FC<PromotionModalProps> = ({ eventBus }) => {
   }
 
   const handleSelectPiece = (piece: PieceName) => {
-    eventBus.emit('WS_SEND', {
-      type: 'PROMOTE',
-      payload: {...data.move, piece }
-    });
+    sendWsCommand(eventBus, 'PROMOTE', { ...data.move, piece });
     setData(null);
   };
 

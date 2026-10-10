@@ -1,7 +1,6 @@
-import { useReducer, useEffect } from 'react';
-import { fromEventPattern, merge, map } from 'rxjs';
-import { EventBus } from 'shared-frontend';
-import { PieceType, BoardPerspective, MoveHighlight } from './BoardTypes';
+import { APP_EVENTS, type EventBus, useEventReducer, type EventReducerBinding } from 'shared-frontend';
+import { CHESS_EVENTS } from '../events';
+import type { PieceType, BoardPerspective, MoveHighlight } from './BoardTypes';
 
 interface BoardState {
   perspective: BoardPerspective;
@@ -20,21 +19,45 @@ type BoardAction =
   | { type: 'GAME_ENDED' }
   | { type: 'RESET' };
 
-const initialState: BoardState = {
+type BoardActionType = BoardAction['type'];
+type ActionOf<T extends BoardActionType> = Extract<BoardAction, { type: T }>;
+
+const createInitialState = (): BoardState => ({
   perspective: 'WHITE',
   pieces: [],
   highlights: new Set(),
   isFinished: false,
-  isStarted: false
-};
+  isStarted: false,
+});
+
+const bindPayload = <T extends BoardActionType>(event: string, type: T): EventReducerBinding<BoardAction> => ({
+  event,
+  toAction: (payload) => ({ type, payload } as ActionOf<T>),
+});
+
+const bind = <T extends BoardActionType>(event: string, type: T): EventReducerBinding<BoardAction> => ({
+  event,
+  toAction: () => ({ type } as ActionOf<T>),
+});
+
+const boardBindings: EventReducerBinding<BoardAction>[] = [
+  bindPayload(APP_EVENTS.startGame, 'START_GAME'),
+  bindPayload(CHESS_EVENTS.wsPlayerColor, 'PLAYER_COLOR'),
+  bindPayload(CHESS_EVENTS.updateBoard, 'UPDATE_BOARD'),
+  bindPayload(CHESS_EVENTS.highlightMoves, 'HIGHLIGHT_MOVES'),
+
+  bind(CHESS_EVENTS.clearHighlights, 'CLEAR_HIGHLIGHTS'),
+  bind(APP_EVENTS.gameEnded, 'GAME_ENDED'),
+  bind(APP_EVENTS.wsGameEnded, 'GAME_ENDED'),
+  bind(APP_EVENTS.gameExit, 'RESET'),
+];
 
 const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
   switch (action.type) {
     case 'START_GAME':
       return {
-        ...state,
+        ...createInitialState(),
         perspective: action.payload?.color ?? 'WHITE',
-        isFinished: false,
         isStarted: true,
       };
     case 'PLAYER_COLOR':
@@ -51,9 +74,13 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
     case 'HIGHLIGHT_MOVES':
       return {
         ...state,
-        highlights: new Set((action.payload ?? []).map((m) => m.to)),
+        highlights: new Set(action.payload.map((move) => move.to)),
       };
     case 'CLEAR_HIGHLIGHTS':
+      if (state.highlights.size === 0) {
+        return state;
+      }
+
       return {
         ...state,
         highlights: new Set(),
@@ -65,35 +92,13 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
         highlights: new Set(),
       };
     case 'RESET':
-      return initialState;
+      return createInitialState();
     default:
       return state;
   }
 }
 
-export const useBoardState = (eventBus: EventBus) => {
-  const [state, dispatch] = useReducer(boardReducer, initialState);
-
-  useEffect(() => {
-    const listen = <T = any>(event: string) =>
-      fromEventPattern<T>(
-        (handler) => eventBus.on(event, handler),
-        (_, signal) => signal()
-      );
-
-    const subscription = merge(
-      listen('START_GAME').pipe(map((payload) => ({ type: 'START_GAME' as const, payload }))),
-      listen('WS:PLAYER_COLOR').pipe(map((payload) => ({ type: 'PLAYER_COLOR' as const, payload }))),
-      listen('UPDATE_BOARD').pipe(map((payload) => ({ type: 'UPDATE_BOARD' as const, payload }))),
-      listen('HIGHLIGHT_MOVES').pipe(map((payload) => ({ type: 'HIGHLIGHT_MOVES' as const, payload: payload as MoveHighlight[] }))),
-      listen('CLEAR_HIGHLIGHTS').pipe(map(() => ({ type: 'CLEAR_HIGHLIGHTS' as const }))),
-      listen('GAME_ENDED').pipe(map(() => ({ type: 'GAME_ENDED' as const }))),
-      listen('WS:GAME_ENDED').pipe(map(() => ({ type: 'GAME_ENDED' as const }))),
-      listen('GAME_EXIT').pipe(map(() => ({ type: 'RESET' as const })))
-    ).subscribe((action) => dispatch(action as BoardAction));
-
-    return () => subscription.unsubscribe();
-  }, [eventBus]);
-
+export const useBoardState = (eventBus: EventBus): BoardState => {
+  const [state] = useEventReducer(eventBus, boardReducer, createInitialState, boardBindings);
   return state;
-}
+};

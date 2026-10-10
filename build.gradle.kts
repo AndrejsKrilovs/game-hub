@@ -48,7 +48,6 @@ fun registerFrontendModule(
     workingDir = dir
 
     doFirst {
-      delete(file("src/main/resources/static"))
       delete(dir.resolve("dist"))
     }
 

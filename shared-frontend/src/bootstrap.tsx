@@ -1,19 +1,31 @@
 import './style.css';
 import './mobile.css';
 
-import { fromEvent, Subscription, tap } from 'rxjs';
-import { createRoot } from 'react-dom/client';
+import React, { type ReactNode } from 'react';
+import { fromEvent, type Subscription, tap } from 'rxjs';
+import { createRoot, type Root } from 'react-dom/client';
 
-import { eventBus } from './game/EventBus';
+import { type EventBus, eventBus } from './game/EventBus';
 import { gameSocket } from './game/GameSocket';
 import { APP_EVENTS } from './game/events';
+import { useBaseGameController } from './game/useBaseGameController';
 
 import { Sidebar } from './components/sidebar/Sidebar';
 import type { HistoryFormatter } from './components/sidebar/Sidebar';
 import { Toast } from './components/toast/Toast';
 import { Confetti } from './components/confetti/Confetti';
 
-type GameName = 'chess' | 'checkers' | 'tictactoe';
+export type GameName = 'chess' | 'checkers' | 'tictactoe' | 'cards';
+
+export interface BootstrapGameContext {
+  eventBus: EventBus;
+  gameName: GameName;
+}
+
+export interface BootstrapGameOptions {
+  historyFormatter?: HistoryFormatter;
+  renderGame?: (context: BootstrapGameContext) => ReactNode;
+}
 
 const initCap = (value: string): string => {
   const normalized = value.trim();
@@ -25,8 +37,12 @@ const initCap = (value: string): string => {
   return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
 };
 
-const ensureElement = <T extends HTMLElement>(selector: string, resolve: () => T | null): T => {
+const ensureElement = <T extends HTMLElement>(
+  selector: string,
+  resolve: () => T | null
+): T => {
   const element = resolve();
+
   if (!element) {
     throw new Error(`${selector} not found`);
   }
@@ -34,7 +50,10 @@ const ensureElement = <T extends HTMLElement>(selector: string, resolve: () => T
   return element;
 };
 
-const createElement = <K extends keyof HTMLElementTagNameMap>(tagName: K, id: string): HTMLElementTagNameMap[K] => {
+const createElement = <K extends keyof HTMLElementTagNameMap>(
+  tagName: K,
+  id: string
+): HTMLElementTagNameMap[K] => {
   const element = document.createElement(tagName);
   element.id = id;
   return element;
@@ -61,7 +80,11 @@ const getCurrentGamePath = (gameName: GameName): string => {
 };
 
 const pushNavigationLock = (gameName: GameName): void => {
-  history.pushState({ page: `${gameName}-lock` }, '', getCurrentGamePath(gameName));
+  history.pushState(
+    { page: `${gameName}-lock` },
+    '',
+    getCurrentGamePath(gameName)
+  );
 };
 
 const lockBrowserNavigation = (gameName: GameName): Subscription => {
@@ -72,13 +95,33 @@ const lockBrowserNavigation = (gameName: GameName): Subscription => {
     .pipe(
       tap(() => {
         pushNavigationLock(gameName);
-        eventBus.emit(APP_EVENTS.toast, { message: 'Нет возможности пользоваться навигацией', type: 'info' });
+
+        eventBus.emit(APP_EVENTS.toast, {
+          message: 'Нет возможности пользоваться навигацией',
+          type: 'info',
+        });
       })
     )
     .subscribe();
 };
 
-export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryFormatter) => {
+interface GameRootProps {
+  context: BootstrapGameContext;
+  options: BootstrapGameOptions;
+}
+
+const GameRoot: React.FC<GameRootProps> = ({ context, options }) => {
+  useBaseGameController(context.eventBus);
+
+  return <>{options.renderGame?.(context)}</>;
+};
+
+export const bootstrapGame = (
+  gameName: GameName,
+  options: BootstrapGameOptions = {}
+) => {
+  const { historyFormatter } = options;
+
   ensureBaseLayout();
   document.title = initCap(gameName);
 
@@ -96,8 +139,10 @@ export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryForm
 
   const socket = gameSocket(eventBus, gameName);
   const navigationSubscription = lockBrowserNavigation(gameName);
+
   const sidebarRoot = createRoot(sidebarEl);
   const overlayRoot = createRoot(overlayEl);
+  const appRoot: Root = createRoot(appContainer);
 
   sidebarRoot.render(
     <Sidebar
@@ -114,12 +159,30 @@ export const bootstrapGame = (gameName: GameName, historyFormatter?: HistoryForm
     </>
   );
 
+  appRoot.render(
+    <GameRoot
+      context={{
+        eventBus,
+        gameName,
+      }}
+      options={options}
+    />
+  );
+
   return {
-    eventBus, appContainer, sidebarRoot, overlayRoot, destroy: () => {
+    eventBus,
+    appContainer,
+    sidebarRoot,
+    overlayRoot,
+    appRoot,
+
+    destroy: () => {
       navigationSubscription.unsubscribe();
       socket.destroy();
+
       sidebarRoot.unmount();
       overlayRoot.unmount();
-    }
+      appRoot.unmount();
+    },
   };
 };
