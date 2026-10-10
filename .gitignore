@@ -1,4 +1,5 @@
 # Gradle & Java
+.claude
 .gradle/
 build/
 **/build/
