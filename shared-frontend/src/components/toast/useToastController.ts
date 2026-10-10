@@ -41,9 +41,7 @@ const getPayloadText = (payload?: ToastPayload): string => {
   return payload?.message ?? payload?.text ?? '';
 };
 
-export const useToastController = ({
-                                     eventBus,
-                                   }: ToastControllerOptions): ToastController => {
+export const useToastController = ({ eventBus }: ToastControllerOptions): ToastController => {
   const [toast, setToast] = useState<ToastState>(null);
   const [selectedColor, setSelectedColor] = useState<ColorType | null>(null);
 
@@ -59,8 +57,7 @@ export const useToastController = ({
 
       eventBus.emit(eventName, { color: selectedColor });
       close();
-    },
-    [close, eventBus, selectedColor]
+    }, [close, eventBus, selectedColor]
   );
 
   const startGame = useCallback(() => {
@@ -84,45 +81,25 @@ export const useToastController = ({
           setToast({ kind: 'color' });
         })
       ),
-
       eventBus.observe(APP_EVENTS.showEndConfirm).pipe(
-        tap(() => {
-          setToast({ kind: 'end' });
-        })
+        tap(() => setToast({ kind: 'end' }))
       ),
-
       eventBus.observe<ToastPayload>(APP_EVENTS.gameEnded).pipe(
-        tap((payload) => {
-          setToast({
-            kind: 'game_over',
-            text: getPayloadText(payload),
-          });
-        })
+        tap((payload) => setToast({ kind: 'game_over', text: getPayloadText(payload) }))
       ),
-
       eventBus.observe<ToastPayload>(APP_EVENTS.toast).pipe(
-        tap((payload) => {
-          setToast({
-            kind: 'message',
-            text: getPayloadText(payload),
-            type: payload?.type ?? 'info',
-          });
-        })
+        tap((payload) =>
+          setToast({ kind: 'message', text: getPayloadText(payload), type: payload?.type ?? 'info' }))
       )
     ).subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [eventBus]);
 
   useEffect(() => {
     if (toast?.kind === 'message') {
       const subscription = timer(AUTO_HIDE_MESSAGE_MS).subscribe(close);
-
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => subscription.unsubscribe();
     }
 
     if (toast?.kind === 'game_over') {
@@ -131,19 +108,9 @@ export const useToastController = ({
         eventBus.emit(APP_EVENTS.wsDisconnect);
       });
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => subscription.unsubscribe();
     }
   }, [close, eventBus, toast]);
 
-  return {
-    toast,
-    selectedColor,
-    selectColor: setSelectedColor,
-    startGame,
-    invite,
-    confirmEnd,
-    close,
-  };
+  return { toast, selectedColor, selectColor: setSelectedColor, startGame, invite, confirmEnd, close };
 };

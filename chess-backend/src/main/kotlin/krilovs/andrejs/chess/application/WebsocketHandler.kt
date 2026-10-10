@@ -42,6 +42,7 @@ class WebsocketHandler(
     private const val ERROR = "ERROR"
     private const val GAME_ENDED = "GAME_ENDED"
     private const val INVITE_CREATED = "INVITE_CREATED"
+    private const val PLAYER_COLOR = "PLAYER_COLOR"
 
     private const val START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   }
@@ -52,6 +53,7 @@ class WebsocketHandler(
   private val botColors = ConcurrentHashMap<String, Color>()
   private val invitedGames = ConcurrentHashMap.newKeySet<String>()
   private val inviteHostColors = ConcurrentHashMap<String, Color>()
+  private val playerColors = ConcurrentHashMap<String, Color>()
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     val requestedGameSessionId = session.queryParam(GAME_SESSION_ID_PARAM)
@@ -115,6 +117,7 @@ class WebsocketHandler(
   }
 
   private fun unregisterSession(session: WebSocketSession) {
+    playerColors.remove(session.id)
     val gameSessionId = sessionToGame.remove(session.id) ?: return
     val sessions = gameSessions[gameSessionId] ?: return
 
@@ -136,6 +139,7 @@ class WebsocketHandler(
       game.loadFromFEN(START_FEN)
       botColors[gameSessionId] = botColor
     }
+    playerColors.remove(id)
 
     sendStateToGame(gameSessionId, game)
     handleBotMove(gameSessionId, game, botColor)
@@ -153,6 +157,7 @@ class WebsocketHandler(
     invitedGames.remove(oldGameSessionId)
     invitedGames.add(newGameSessionId)
     inviteHostColors[newGameSessionId] = playerColor
+    playerColors[id] = playerColor
     moveSessionToGame(this, oldGameSessionId, newGameSessionId)
 
     sendEvent(
@@ -165,6 +170,7 @@ class WebsocketHandler(
       )
     )
 
+    sendEvent(PLAYER_COLOR, mapOf("color" to playerColor))
     sendEvent("WAITING_FOR_OPPONENT", mapOf("message" to "Ожидаем подключения второго игрока..."))
   }
 
@@ -183,6 +189,7 @@ class WebsocketHandler(
   private fun WebSocketSession.handleGetMoves(data: JsonNode) {
     val game = game() ?: return
     val from = readSquare(data, "from") ?: return
+    if (!ownsPiece(game, from)) return
     val result = synchronized(game) {
       game.generateMovesForSquare(from)
     }
@@ -203,6 +210,8 @@ class WebsocketHandler(
     val from = readSquare(data, "from") ?: return
     val to = readSquare(data, "to") ?: return
     val botColor = botColors[gameSessionId]
+
+    if (!ownsPiece(game, from)) return
 
     val result = synchronized(game) {
       game.makeMove(from, to)
@@ -241,6 +250,9 @@ class WebsocketHandler(
     }
 
     val botColor = botColors[gameSessionId]
+
+    if (!ownsPiece(game, from)) return
+
     val result = synchronized(game) {
       game.promote(from, to, piece)
     }
@@ -254,6 +266,17 @@ class WebsocketHandler(
         sendError(result.message)
       }
     }
+  }
+
+  private fun WebSocketSession.ownsPiece(game: GameService, square: Int): Boolean {
+    val playerColor = playerColors[id] ?: return true
+
+    if (game.getPiece(square)?.color != playerColor) {
+      sendError("Это не ваша фигура")
+      return false
+    }
+
+    return true
   }
 
   private fun WebSocketSession.handleBotMove(gameSessionId: String, game: GameService, botColor: Color) {
@@ -316,9 +339,13 @@ class WebsocketHandler(
     games.remove(gameSessionId)
     botColors.remove(gameSessionId)
     invitedGames.remove(gameSessionId)
+    inviteHostColors.remove(gameSessionId)
 
     gameSessions.remove(gameSessionId)
-      ?.forEach { session -> sessionToGame.remove(session.id) }
+      ?.forEach { session ->
+        sessionToGame.remove(session.id)
+        playerColors.remove(session.id)
+      }
   }
 
   private fun WebSocketSession.gameSessionId(): String? = sessionToGame[id]
@@ -344,9 +371,7 @@ class WebsocketHandler(
   private fun sendToGame(gameSessionId: String, type: String, payload: Any) {
     gameSessions[gameSessionId]
       ?.filter { it.isOpen }
-      ?.forEach { session ->
-        session.sendEvent(type, payload)
-      }
+      ?.forEach { session -> session.sendEvent(type, payload) }
   }
 
   private fun WebSocketSession.sendError(message: String) {
@@ -454,6 +479,13 @@ class WebsocketHandler(
 
     synchronized(game) {
       game.loadFromFEN(START_FEN)
+    }
+
+    val hostColor = inviteHostColors[gameSessionId]
+    gameSessions[gameSessionId]?.filter { it.isOpen }?.forEach { session ->
+      val color = playerColors[session.id]
+        ?: hostColor?.opposite().also { if (it != null) playerColors[session.id] = it }
+      if (color != null) session.sendEvent(PLAYER_COLOR, mapOf("color" to color))
     }
 
     sendToGame(gameSessionId, "TOAST", mapOf(

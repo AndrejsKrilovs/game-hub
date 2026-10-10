@@ -13,6 +13,7 @@ interface BoardState {
 
 type BoardAction =
   | { type: 'START_GAME'; payload?: { color?: BoardPerspective } }
+  | { type: 'PLAYER_COLOR'; payload: { color: BoardPerspective } }
   | { type: 'UPDATE_BOARD'; payload?: { pieces?: PieceType[] } }
   | { type: 'HIGHLIGHT_MOVES'; payload: MoveHighlight[] }
   | { type: 'CLEAR_HIGHLIGHTS' }
@@ -35,6 +36,11 @@ const boardReducer = (state: BoardState, action: BoardAction): BoardState => {
         perspective: action.payload?.color ?? 'WHITE',
         isFinished: false,
         isStarted: true,
+      };
+    case 'PLAYER_COLOR':
+      return {
+        ...state,
+        perspective: action.payload.color,
       };
     case 'UPDATE_BOARD':
       return {
@@ -77,6 +83,7 @@ export const useBoardState = (eventBus: EventBus) => {
 
     const subscription = merge(
       listen('START_GAME').pipe(map((payload) => ({ type: 'START_GAME' as const, payload }))),
+      listen('WS:PLAYER_COLOR').pipe(map((payload) => ({ type: 'PLAYER_COLOR' as const, payload }))),
       listen('UPDATE_BOARD').pipe(map((payload) => ({ type: 'UPDATE_BOARD' as const, payload }))),
       listen('HIGHLIGHT_MOVES').pipe(map((payload) => ({ type: 'HIGHLIGHT_MOVES' as const, payload: payload as MoveHighlight[] }))),
       listen('CLEAR_HIGHLIGHTS').pipe(map(() => ({ type: 'CLEAR_HIGHLIGHTS' as const }))),

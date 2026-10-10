@@ -32,11 +32,6 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({ eventBus }) => {
     pieces.forEach((p) => map.set(p.coordinates, p));
     return map;
   }, [pieces]);
-
-  const handleCellClick = (coord: string) => {
-    eventBus.emit('CELL_CLICK', { cord: coord });
-  };
-
   if (!isStarted) {
     return null;
   }
@@ -57,7 +52,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({ eventBus }) => {
               showFileCoord={rIndex === 7}
               showRankCoord={fIndex === 0}
               piece={pieceMap.get(coord)}
-              onClick={handleCellClick}
+              onClick={() => eventBus.emit('CELL_CLICK', { cord: coord })}
             />
           );
         })

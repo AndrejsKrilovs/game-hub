@@ -50,11 +50,7 @@ export const useGameController = (eventBus: EventBus) => {
     const wsInviteCreated$ = listen<{ inviteUrl: string }>('WS:INVITE_CREATED').pipe(
       tap(({ inviteUrl }) => {
         navigator.clipboard?.writeText(inviteUrl)
-
-        eventBus.emit('TOAST', {
-          message: `Ссылка приглашения скопирована: ${inviteUrl}`,
-          type: 'success',
-        })
+        eventBus.emit('TOAST', { message: `Ссылка приглашения скопирована в буфер обмена`, type: 'success' })
       })
     );
 
@@ -75,18 +71,13 @@ export const useGameController = (eventBus: EventBus) => {
         }
 
         eventBus.emit('CLEAR_HIGHLIGHTS');
-        eventBus.emit('WS_SEND', {
-          type: 'MAKE_MOVE',
-          payload: { from: currentSelected, to: cord },
-        });
+        eventBus.emit('WS_SEND', { type: 'MAKE_MOVE', payload: { from: currentSelected, to: cord } });
         selectedCellRef.current = null;
       })
     );
 
     const wsMove$ = listen<{ move: any }>('WS:MOVE').pipe(
-      tap(({ move }) => {
-        lastMoveRef.current = move;
-      })
+      tap(({ move }) => lastMoveRef.current = move)
     );
 
     const wsGameEnded$ = listen<{ message?: string } | string>('WS:GAME_ENDED').pipe(
@@ -108,12 +99,7 @@ export const useGameController = (eventBus: EventBus) => {
     );
 
     const wsWaitingForOpponent$ = listen<{ message?: string }>('WS:WAITING_FOR_OPPONENT').pipe(
-      tap(({ message }) => {
-        eventBus.emit('TOAST', {
-          message: message ?? 'Ожидаем подключения второго игрока...',
-          type: 'info',
-        });
-      })
+      tap(({ message })=> setTimeout(() => eventBus.emit('TOAST', { message: message, type: 'info' }), 1000))
     );
 
     const wsState$ = listen<WsStatePayload>('WS:STATE').pipe(
