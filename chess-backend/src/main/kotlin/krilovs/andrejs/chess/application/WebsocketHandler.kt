@@ -8,6 +8,7 @@ import krilovs.andrejs.chess.dto.AvailableMovesResult
 import krilovs.andrejs.chess.dto.MoveResult
 import krilovs.andrejs.chess.dto.PromotionResult
 import krilovs.andrejs.chess.utils.BoardUtils
+import jakarta.annotation.PreDestroy
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
@@ -18,6 +19,9 @@ import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 
 @Component
 class WebsocketHandler(
@@ -44,6 +48,9 @@ class WebsocketHandler(
     private const val INVITE_CREATED = "INVITE_CREATED"
     private const val PLAYER_COLOR = "PLAYER_COLOR"
 
+    private const val MAX_PLAYERS = 2
+    private const val EMPTY_INVITE_TTL_MINUTES = 10L
+
     private const val START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
   }
 
@@ -54,6 +61,15 @@ class WebsocketHandler(
   private val invitedGames = ConcurrentHashMap.newKeySet<String>()
   private val inviteHostColors = ConcurrentHashMap<String, Color>()
   private val playerColors = ConcurrentHashMap<String, Color>()
+  private val cleanupTasks = ConcurrentHashMap<String, ScheduledFuture<*>>()
+  private val cleanupExecutor = Executors.newSingleThreadScheduledExecutor { runnable ->
+    Thread(runnable, "chess-game-cleanup").apply { isDaemon = true }
+  }
+
+  @PreDestroy
+  fun shutdown() {
+    cleanupExecutor.shutdownNow()
+  }
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
     val requestedGameSessionId = session.queryParam(GAME_SESSION_ID_PARAM)
@@ -62,6 +78,12 @@ class WebsocketHandler(
 
     if (game == null) {
       session.sendError("Игра не найдена")
+      session.close(CloseStatus.NOT_ACCEPTABLE)
+      return
+    }
+
+    if (requestedGameSessionId != null && openSessionsCount(gameSessionId) >= MAX_PLAYERS) {
+      session.sendError("В игре уже два игрока")
       session.close(CloseStatus.NOT_ACCEPTABLE)
       return
     }
@@ -108,7 +130,11 @@ class WebsocketHandler(
     }
   }
 
+  private fun openSessionsCount(gameSessionId: String): Int =
+    gameSessions[gameSessionId]?.count { it.isOpen } ?: 0
+
   private fun registerSession(gameSessionId: String, session: WebSocketSession) {
+    cleanupTasks.remove(gameSessionId)?.cancel(false)
     sessionToGame[session.id] = gameSessionId
 
     gameSessions
@@ -125,8 +151,23 @@ class WebsocketHandler(
 
     if (sessions.isEmpty()) {
       gameSessions.remove(gameSessionId)
-      if (!invitedGames.contains(gameSessionId)) removeGame(gameSessionId)
+      if (invitedGames.contains(gameSessionId)) scheduleEmptyGameCleanup(gameSessionId) else removeGame(gameSessionId)
+      return
     }
+
+    if (invitedGames.contains(gameSessionId)) {
+      sendToGame(gameSessionId, GAME_ENDED, mapOf("message" to "Соперник покинул игру"))
+      removeGame(gameSessionId)
+    }
+  }
+
+  private fun scheduleEmptyGameCleanup(gameSessionId: String) {
+    val task = cleanupExecutor.schedule({
+      cleanupTasks.remove(gameSessionId)
+      if (openSessionsCount(gameSessionId) == 0) removeGame(gameSessionId)
+    }, EMPTY_INVITE_TTL_MINUTES, TimeUnit.MINUTES)
+
+    cleanupTasks.put(gameSessionId, task)?.cancel(false)
   }
 
   private fun WebSocketSession.handleStartGame(data: JsonNode) {
@@ -340,11 +381,13 @@ class WebsocketHandler(
     botColors.remove(gameSessionId)
     invitedGames.remove(gameSessionId)
     inviteHostColors.remove(gameSessionId)
+    cleanupTasks.remove(gameSessionId)?.cancel(false)
 
     gameSessions.remove(gameSessionId)
       ?.forEach { session ->
         sessionToGame.remove(session.id)
         playerColors.remove(session.id)
+        runCatching { session.close(CloseStatus.NORMAL) }
       }
   }
 
@@ -472,8 +515,7 @@ class WebsocketHandler(
       return
     }
 
-    val sessionsCount = gameSessions[gameSessionId] ?.count { it.isOpen } ?: 0
-    if (sessionsCount < 2) {
+    if (openSessionsCount(gameSessionId) < MAX_PLAYERS) {
       return
     }
 

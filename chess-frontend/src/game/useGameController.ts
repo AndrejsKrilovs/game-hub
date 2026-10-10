@@ -84,6 +84,7 @@ export const useGameController = (eventBus: EventBus) => {
       tap((payload) => {
         const message = typeof payload === 'object' ? payload?.message : payload;
         eventBus.emit('GAME_ENDED', { message: message ?? 'Партия завершена' });
+        eventBus.emit('WS_DISCONNECT');
       })
     );
 

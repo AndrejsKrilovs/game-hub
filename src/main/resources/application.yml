@@ -1,7 +1,18 @@
 server:
   port: ${PORT:8080}
   address: 0.0.0.0
+  servlet:
+    session:
+      timeout: ${app.session.inactivity-timeout-seconds}s
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
 
 app:
   session:
     inactivity-timeout-seconds: 1800 # 30 минут (1800 секунд)
+
+  websocket:
+    # Список разрешённых Origin через запятую (пусто = только same-origin), например для dev: http://localhost:5173
+    allowed-origins: ${WS_ALLOWED_ORIGINS:}

@@ -1,6 +1,7 @@
 package krilovs.andrejs.chess
 
 import krilovs.andrejs.chess.application.WebsocketHandler
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Component
@@ -12,11 +13,22 @@ import org.springframework.web.socket.server.standard.ServletServerContainerFact
 @Component
 @EnableWebSocket
 @ConfigurationPropertiesScan
-class ChessApp(private val handler: WebsocketHandler) : WebSocketConfigurer {
+class ChessApp(
+  private val handler: WebsocketHandler,
+  @param:Value($$"${app.websocket.allowed-origins:}")
+  private val allowedOrigins: List<String>
+) : WebSocketConfigurer {
+
   override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-    registry
-      .addHandler(handler, "/chess/ws")
-      .setAllowedOriginPatterns("*")
+    val registration = registry.addHandler(handler, "/chess/ws")
+
+    val origins = allowedOrigins
+      .map { it.trim() }
+      .filter { it.isNotBlank() }
+
+    if (origins.isNotEmpty()) {
+      registration.setAllowedOriginPatterns(*origins.toTypedArray())
+    }
   }
 
   @Bean
