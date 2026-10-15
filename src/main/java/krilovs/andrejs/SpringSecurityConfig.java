@@ -24,9 +24,6 @@ import java.util.List;
 @Configuration
 public class SpringSecurityConfig {
 
-    public static final String CHESS_ALLOWED = "CHESS_ALLOWED";
-    public static final String CHESS_ACTIVE = "CHESS_ACTIVE";
-
     @Bean
     AuthenticationProvider customAuthenticationProvider() {
         return new AuthenticationProvider() {
@@ -88,21 +85,19 @@ public class SpringSecurityConfig {
                         .requestMatchers("/games/*/start", "/games/*/exit")
                         .authenticated()
 
-                        .requestMatchers("/chess", "/chess/", "/chess/**")
+                        .requestMatchers(GameAccess.requestPatterns())
                         .access((authenticationSupplier, context) -> {
                             var request = context.getRequest();
                             var authentication = authenticationSupplier.get();
                             var authenticated = isAuthenticated(authentication);
                             var session = request.getSession(false);
-
-                            var allowed = session != null
-                                    && (
-                                    Boolean.TRUE.equals(session.getAttribute(CHESS_ALLOWED))
-                                            || Boolean.TRUE.equals(session.getAttribute(CHESS_ACTIVE))
-                            );
-
                             var inviteLink = hasGameSessionId(request);
-                            return new AuthorizationDecision(authenticated && (allowed || inviteLink));
+
+                            var gameAllowed = GameAccess.fromRequest(request)
+                                    .map(game -> session != null && game.isAllowedOrActive(session))
+                                    .orElse(false);
+
+                            return new AuthorizationDecision(authenticated && (gameAllowed || inviteLink));
                         })
 
                         .anyRequest().permitAll()
@@ -110,7 +105,7 @@ public class SpringSecurityConfig {
 
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint((request, response, authException) -> {
-                            if (isChessRequest(request)) {
+                            if (isGameRequest(request)) {
                                 redirectToLoginWithReturnUrl(request, response);
                             }
                             else {
@@ -118,7 +113,7 @@ public class SpringSecurityConfig {
                             }
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            if (isChessRequest(request)) {
+                            if (isGameRequest(request)) {
                                 response.sendRedirect("/");
                             }
                             else {
@@ -141,8 +136,8 @@ public class SpringSecurityConfig {
         return gameSessionId != null && !gameSessionId.isBlank();
     }
 
-    private static boolean isChessRequest(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/chess");
+    private static boolean isGameRequest(HttpServletRequest request) {
+        return GameAccess.fromRequest(request).isPresent();
     }
 
     private static void redirectToLoginWithReturnUrl(HttpServletRequest request, HttpServletResponse response) throws IOException {

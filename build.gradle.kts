@@ -27,6 +27,7 @@ java {
 dependencies {
   compileOnly("org.projectlombok:lombok")
   implementation(project(":chess-backend"))
+  implementation(project(":checkers-backend"))
   annotationProcessor("org.projectlombok:lombok")
   developmentOnly("org.springframework.boot:spring-boot-devtools")
   implementation("org.springframework.boot:spring-boot-starter-web")
@@ -34,9 +35,9 @@ dependencies {
 }
 
 val sharedFrontendDir = file("shared-frontend")
-val chessFrontendDir = file("chess-frontend")
 val mainFrontendDir = file("main-frontend")
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
+else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
 
 fun frontendSourceTree(dir: File) = fileTree(dir) {
   exclude("dist", "node_modules", ".vite")
@@ -96,25 +97,32 @@ val mainBuild = registerFrontendModule(
   dependsOnBuild = sharedBuild
 )
 
-val chessBuild = registerFrontendModule(
-  name = "Chess",
-  dir = chessFrontendDir,
-  dependsOnBuild = sharedBuild
-)
+// Фронтенды игр: каталог "<игра>-frontend", публикуется в static/<игра>
+val gameFrontends = listOf("chess", "checkers")
+
+val gameBuilds = gameFrontends.associateWith { game ->
+  registerFrontendModule(
+    name = game.replaceFirstChar { it.uppercase() },
+    dir = file("$game-frontend"),
+    dependsOnBuild = sharedBuild
+  )
+}
 
 val syncFrontendStatic = tasks.register<Sync>("syncFrontendStatic") {
   description = "Syncs built frontend files to Spring static resources"
 
   dependsOn(mainBuild)
-  dependsOn(chessBuild)
+  dependsOn(gameBuilds.values)
 
   into(file("src/main/resources/static"))
   from(mainFrontendDir.resolve("dist")) {
     into("")
   }
 
-  from(chessFrontendDir.resolve("dist")) {
-    into("chess")
+  gameBuilds.keys.forEach { game ->
+    from(file("$game-frontend/dist")) {
+      into(game)
+    }
   }
 }
 
@@ -125,6 +133,6 @@ tasks.named("processResources") {
 tasks.named<Delete>("clean") {
   delete(file("src/main/resources/static"))
   delete(mainFrontendDir.resolve("dist"))
-  delete(chessFrontendDir.resolve("dist"))
+  gameFrontends.forEach { delete(file("$it-frontend/dist")) }
   delete(sharedFrontendDir.resolve("dist"))
 }

@@ -9,7 +9,14 @@ export const GAMES: Game[] = [
     startEndpoint: "/games/chess/start",
     targetUrl: "/chess/"
   },
+  {
+    id: "checkers",
+    title: "Шашки",
+    icon: "⛀",
+    active: true,
+    startEndpoint: "/games/checkers/start",
+    targetUrl: "/checkers/"
+  },
   { id: "blackjack", title: "Blackjack", icon: "🂠", active: false },
-  { id: "checkers", title: "Шашки", icon: "⛀", active: false },
   { id: "tic-tac-toe", title: "Крестики-Нолики", icon: "✕◯", active: false }
 ];
