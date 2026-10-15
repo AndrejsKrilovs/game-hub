@@ -36,6 +36,7 @@ COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
 COPY gradle ./gradle
 COPY src ./src
 COPY chess-backend ./chess-backend
+COPY checkers-backend ./checkers-backend
 
 # Копируем собранные ассеты в статику перед сборкой JAR
 COPY --from=frontend-build /app/main-frontend/dist ./src/main/resources/static

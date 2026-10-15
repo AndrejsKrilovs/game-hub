@@ -325,7 +325,7 @@ public class CheckersWebsocketHandler extends TextWebSocketHandler {
     }
   }
 
-  private boolean   ownsPiece(WebSocketSession session, CheckersGameService game, int square) {
+  private boolean ownsPiece(WebSocketSession session, CheckersGameService game, int square) {
     var playerColor = playerColors.get(session.getId());
     if (playerColor == null) {
       return true;
