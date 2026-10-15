@@ -27,6 +27,7 @@ java {
 dependencies {
   compileOnly("org.projectlombok:lombok")
   implementation(project(":chess-backend"))
+  implementation(project(":checkers-backend"))
   annotationProcessor("org.projectlombok:lombok")
   developmentOnly("org.springframework.boot:spring-boot-devtools")
   implementation("org.springframework.boot:spring-boot-starter-web")
@@ -35,7 +36,8 @@ dependencies {
 
 val sharedFrontendDir = file("shared-frontend")
 val mainFrontendDir = file("main-frontend")
-val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd" else "npm"
+val npmCommand = if (System.getProperty("os.name").contains("Windows")) "npm.cmd"
+else "/Users/andrejs.krilovs/.nvm/versions/node/v24.15.0/bin/npm"
 
 fun frontendSourceTree(dir: File) = fileTree(dir) {
   exclude("dist", "node_modules", ".vite")

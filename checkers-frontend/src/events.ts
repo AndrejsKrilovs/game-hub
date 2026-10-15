@@ -6,5 +6,4 @@ export const CHECKERS_EVENTS = {
   wsMove: 'WS:MOVE',
   wsMoves: 'WS:MOVES',
   wsPlayerColor: 'WS:PLAYER_COLOR',
-  wsPromotion: 'WS:PROMOTION',
 } as const;

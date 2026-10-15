@@ -1,0 +1,26 @@
+.checker {
+  display: grid;
+  place-items: center;
+  width: 76%;
+  height: 76%;
+  border-radius: 50%;
+  box-sizing: border-box;
+  font-size: calc(var(--cell-size) * 0.45);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5), inset 0 0 0 4px rgba(255, 255, 255, 0.18);
+}
+
+.checker.white {
+  background: radial-gradient(circle at 35% 30%, #fff, #d9d2c3);
+  border: 2px solid #b8ae98;
+  color: #8a7a55;
+}
+
+.checker.black {
+  background: radial-gradient(circle at 35% 30%, #5a5a5a, #1d1d1d);
+  border: 2px solid #000;
+  color: #d8b74a;
+}
+
+.checker.captured {
+  opacity: 0.35;
+}

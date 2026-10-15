@@ -1,5 +1,10 @@
 import { bootstrapGame } from 'shared-frontend';
 
+import './checkers.css';
+import { formatCheckersMove } from './game/CheckersHistoryWriter';
+import { CheckersBoard } from './board/CheckersBoard';
+
 bootstrapGame('checkers', {
-  renderGame: () => <h1>Здесь будет доска</h1>,
+  historyFormatter: formatCheckersMove,
+  renderGame: ({ eventBus }) => <CheckersBoard eventBus={eventBus} />,
 });
